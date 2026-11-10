@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -17,6 +19,8 @@ namespace TiaOpennessMcp.Server
     {
         private readonly ServerConfig _config;
         private readonly ToolRegistry _toolRegistry;
+        private readonly string _bearerToken;
+        private readonly HashSet<string> _corsAllowedOrigins;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly HttpListener _listener;
         private readonly ConcurrentDictionary<string, SseSession> _sessions = new ConcurrentDictionary<string, SseSession>();
@@ -28,6 +32,25 @@ namespace TiaOpennessMcp.Server
         {
             _config = config;
             _toolRegistry = toolRegistry;
+            _bearerToken = config.Server.RequireBearerToken
+                ? Environment.GetEnvironmentVariable("TIA_MCP_BEARER_TOKEN")?.Trim() ?? ""
+                : "";
+            if (config.Server.RequireBearerToken && string.IsNullOrWhiteSpace(_bearerToken))
+            {
+                throw new InvalidOperationException("Set the TIA_MCP_BEARER_TOKEN environment variable before starting the HTTP server.");
+            }
+
+            string allowedOrigins = Environment.GetEnvironmentVariable("TIA_MCP_CORS_ALLOWED_ORIGINS") ?? "";
+            _corsAllowedOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string origin in allowedOrigins.Split(','))
+            {
+                string trimmedOrigin = origin.Trim();
+                if (!string.IsNullOrEmpty(trimmedOrigin))
+                {
+                    _corsAllowedOrigins.Add(trimmedOrigin);
+                }
+            }
+
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -120,12 +143,13 @@ namespace TiaOpennessMcp.Server
             var req = context.Request;
             var res = context.Response;
 
-            // Apply CORS headers
-            if (_config.Server.EnableCors)
+            string? origin = req.Headers["Origin"];
+            if (_config.Server.EnableCors && origin != null && _corsAllowedOrigins.Contains(origin))
             {
-                res.AddHeader("Access-Control-Allow-Origin", "*");
+                res.AddHeader("Access-Control-Allow-Origin", origin);
                 res.AddHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
                 res.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
+                res.AddHeader("Vary", "Origin");
             }
 
             if (req.HttpMethod.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
@@ -133,6 +157,22 @@ namespace TiaOpennessMcp.Server
                 res.StatusCode = (int)HttpStatusCode.NoContent;
                 res.Close();
                 return;
+            }
+
+            if (_config.Server.RequireBearerToken)
+            {
+                string authorization = req.Headers["Authorization"] ?? "";
+                const string bearerPrefix = "Bearer ";
+                string providedToken = authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
+                    ? authorization.Substring(bearerPrefix.Length).Trim()
+                    : "";
+                if (string.IsNullOrEmpty(providedToken) || !FixedTimeEquals(providedToken, _bearerToken))
+                {
+                    res.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    res.AddHeader("WWW-Authenticate", "Bearer");
+                    res.Close();
+                    return;
+                }
             }
 
             string rawPath = req.Url?.AbsolutePath ?? "/";
@@ -192,6 +232,25 @@ namespace TiaOpennessMcp.Server
                 }
                 catch { }
             }
+        }
+
+        private static bool FixedTimeEquals(string left, string right)
+        {
+            byte[] leftHash;
+            byte[] rightHash;
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                leftHash = sha256.ComputeHash(Encoding.UTF8.GetBytes(left));
+                rightHash = sha256.ComputeHash(Encoding.UTF8.GetBytes(right));
+            }
+
+            int difference = 0;
+            for (int i = 0; i < leftHash.Length; i++)
+            {
+                difference |= leftHash[i] ^ rightHash[i];
+            }
+
+            return difference == 0;
         }
 
         private async Task HandleStatusAsync(HttpListenerContext context)
