@@ -1533,13 +1533,20 @@ namespace TiaOpennessMcp.Tia
                     if (entry is MappingTableEntrySimple simple)
                     {
                         document.Type = "Simple";
-                        document.Condition = simple.Condition;
+                        document.Condition = JsonSerializer.SerializeToElement(simple.Condition);
                     }
                     else if (entry is MappingTableEntryRange range)
                     {
                         document.Type = "Range";
                         document.From = CreateMappingValue(range.From);
                         document.To = CreateMappingValue(range.To);
+                    }
+                    else if (entry is MappingTableEntryBitmask bitmask)
+                    {
+                        document.Type = "Bitmask";
+                        document.BitDynamizationType = bitmask.BitDynamizationType.ToString();
+                        document.Condition = JsonSerializer.SerializeToElement(bitmask.Condition);
+                        document.Relevant = bitmask.Relevant;
                     }
                     else
                         throw new InvalidDataException($"Unsupported mapping entry '{entry.GetType().Name}'.");
@@ -1606,18 +1613,35 @@ namespace TiaOpennessMcp.Tia
         {
             if (document.Formula == null)
                 throw new InvalidDataException("Value converter formula must be a string.");
-            ParseEnumValue(typeof(ConditionType), document.ConditionType, "mapping condition type");
+            ConditionType conditionType = (ConditionType)ParseEnumValue(
+                typeof(ConditionType), document.ConditionType, "mapping condition type");
+            bool hasBitmaskEntries = document.Entries.Any(entry => entry.Type == "Bitmask");
+            if (hasBitmaskEntries &&
+                (conditionType != ConditionType.Bitmask || document.Entries.Any(entry => entry.Type != "Bitmask")))
+                throw new InvalidDataException("Bitmask mapping entries require a Bitmask condition type and cannot be mixed with other entry types.");
+            if (conditionType == ConditionType.Bitmask && document.Entries.Count > 0 && !hasBitmaskEntries)
+                throw new InvalidDataException("Bitmask condition type requires bitmask mapping entries.");
+            BitDynamizationType? bitDynamizationType = null;
             foreach (HmiJsonMappingEntry entry in document.Entries)
             {
                 if (entry.Type == "Simple")
                 {
-                    if (entry.Condition == null)
+                    if (!entry.Condition.HasValue || entry.Condition.Value.ValueKind != JsonValueKind.String)
                         throw new InvalidDataException("Simple mapping entries require a condition.");
                 }
                 else if (entry.Type == "Range")
                 {
                     if (entry.From == null || entry.To == null)
                         throw new InvalidDataException("Range mapping entries require from and to values.");
+                }
+                else if (entry.Type == "Bitmask")
+                {
+                    ReadBitmaskCondition(entry);
+                    ReadRelevantMask(entry);
+                    var entryBitDynamizationType = ParseBitDynamizationType(entry.BitDynamizationType);
+                    if (bitDynamizationType.HasValue && bitDynamizationType.Value != entryBitDynamizationType)
+                        throw new InvalidDataException("All bitmask mapping entries must use the same bit dynamization type.");
+                    bitDynamizationType = entryBitDynamizationType;
                 }
                 else
                     throw new InvalidDataException($"Unsupported mapping entry type '{entry.Type}'.");
@@ -1643,13 +1667,38 @@ namespace TiaOpennessMcp.Tia
                 entry.Delete();
             table.ConditionType = (ConditionType)ParseEnumValue(typeof(ConditionType),
                 document.ConditionType, "mapping condition type");
+            if (document.Entries.Count > 0 && document.Entries[0].Type == "Bitmask")
+            {
+                BitDynamizationType bitDynamizationType =
+                    ParseBitDynamizationType(document.Entries[0].BitDynamizationType);
+                var bitmaskEntries = table.Entries.Create(bitDynamizationType);
+                if (bitmaskEntries.Count != document.Entries.Count)
+                    throw new InvalidDataException(
+                        $"TIA created {bitmaskEntries.Count} '{bitDynamizationType}' bitmask entries, but the JSON contains {document.Entries.Count}.");
+                for (int i = 0; i < bitmaskEntries.Count; i++)
+                {
+                    HmiJsonMappingEntry entry = document.Entries[i];
+                    var bitmask = bitmaskEntries[i];
+                    ulong condition = ReadBitmaskCondition(entry);
+                    BitDynamizationType entryBitDynamizationType =
+                        ParseBitDynamizationType(entry.BitDynamizationType);
+                    if (entryBitDynamizationType != bitDynamizationType ||
+                        bitmask.BitDynamizationType != entryBitDynamizationType ||
+                        bitmask.Relevant != ReadRelevantMask(entry))
+                        throw new InvalidDataException(
+                            $"TIA generated a bitmask entry with a different type or relevant mask at index {i}.");
+                    bitmask.Condition = condition;
+                    ApplyMappingEntryValues(bitmask, entry);
+                }
+                return;
+            }
             foreach (HmiJsonMappingEntry entry in document.Entries)
             {
                 MappingTableEntryBase actual;
                 if (entry.Type == "Simple")
                 {
                     var simple = table.Entries.Create<MappingTableEntrySimple>();
-                    simple.Condition = entry.Condition;
+                    simple.Condition = ReadSimpleCondition(entry);
                     actual = simple;
                 }
                 else if (entry.Type == "Range")
@@ -1661,15 +1710,50 @@ namespace TiaOpennessMcp.Tia
                 }
                 else
                     throw new InvalidDataException($"Unsupported mapping entry type '{entry.Type}'.");
-                if (entry.Value != null)
-                    actual.Value = ReadMappingValue(entry.Value);
-                actual.Flashing = entry.Flashing;
-                if (entry.AlternateValue != null)
-                    actual.AlternateValue = ReadMappingValue(entry.AlternateValue);
-                actual.FlashingRate = (Siemens.Engineering.HmiUnified.UI.Dynamization.Flashing.FlashingRate)
-                    ParseEnumValue(typeof(Siemens.Engineering.HmiUnified.UI.Dynamization.Flashing.FlashingRate),
-                        entry.FlashingRate, "mapping flashing rate");
+                ApplyMappingEntryValues(actual, entry);
             }
+        }
+
+        private static string ReadSimpleCondition(HmiJsonMappingEntry entry)
+        {
+            if (!entry.Condition.HasValue || entry.Condition.Value.ValueKind != JsonValueKind.String)
+                throw new InvalidDataException("Simple mapping entries require a string condition.");
+            return entry.Condition.Value.GetString() ??
+                throw new InvalidDataException("Simple mapping entry condition cannot be null.");
+        }
+
+        private static BitDynamizationType ParseBitDynamizationType(string? value)
+        {
+            if (value == null || value.Trim().Length == 0)
+                throw new InvalidDataException("Bitmask mapping entries require a bit dynamization type.");
+            return (BitDynamizationType)ParseEnumValue(typeof(BitDynamizationType),
+                value, "bitmask dynamization type");
+        }
+
+        private static ulong ReadBitmaskCondition(HmiJsonMappingEntry entry)
+        {
+            if (!entry.Condition.HasValue || entry.Condition.Value.ValueKind != JsonValueKind.Number ||
+                !entry.Condition.Value.TryGetUInt64(out ulong condition))
+                throw new InvalidDataException("Bitmask mapping entries require an unsigned 64-bit condition.");
+            return condition;
+        }
+
+        private static ulong ReadRelevantMask(HmiJsonMappingEntry entry)
+        {
+            return entry.Relevant ?? throw new InvalidDataException(
+                "Bitmask mapping entries require an unsigned 64-bit relevant mask.");
+        }
+
+        private static void ApplyMappingEntryValues(MappingTableEntryBase actual, HmiJsonMappingEntry entry)
+        {
+            if (entry.Value != null)
+                actual.Value = ReadMappingValue(entry.Value);
+            actual.Flashing = entry.Flashing;
+            if (entry.AlternateValue != null)
+                actual.AlternateValue = ReadMappingValue(entry.AlternateValue);
+            actual.FlashingRate = (Siemens.Engineering.HmiUnified.UI.Dynamization.Flashing.FlashingRate)
+                ParseEnumValue(typeof(Siemens.Engineering.HmiUnified.UI.Dynamization.Flashing.FlashingRate),
+                    entry.FlashingRate, "mapping flashing rate");
         }
 
         private static void ApplyDynamizations(
@@ -2321,7 +2405,9 @@ namespace TiaOpennessMcp.Tia
         private sealed class HmiJsonMappingEntry
         {
             public string Type { get; set; } = "";
-            public string? Condition { get; set; }
+            public JsonElement? Condition { get; set; }
+            public string? BitDynamizationType { get; set; }
+            public ulong? Relevant { get; set; }
             public HmiJsonMappingValue? From { get; set; }
             public HmiJsonMappingValue? To { get; set; }
             public HmiJsonMappingValue? Value { get; set; }

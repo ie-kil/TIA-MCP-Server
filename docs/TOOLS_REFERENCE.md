@@ -966,10 +966,12 @@
   | `target_name` | string | No | null | Target HMI software/device selector. |
 
 **JSON fidelity:** Tag and Expression dynamizations include their value converters,
-ordered Simple/Range mapping entries, typed values, flashing settings, and raw text
-markup. Faceplates include `containedType`; compact defaults are cached per contained
-type. Internal tags include `dataType`; unset limits are null. Unsupported dynamizations,
-bitmask mappings, and tag-based limits fail explicitly rather than exporting lossy placeholders.
+ordered Simple/Range/Bitmask mapping entries, typed values, flashing settings, and raw
+text markup. Bitmask entries preserve the API's `bitDynamizationType`, unsigned 64-bit
+`condition`, and generated `relevant` mask. Faceplates include `containedType`; compact
+defaults are cached per contained type. Internal tags include `dataType`; unset limits
+are null. Unsupported dynamizations, mapping kinds, and tag-based limits fail explicitly
+rather than exporting lossy placeholders.
 Custom widgets export supported full properties (`compact: false`) and a manifest
 warning: their creation identity and interface are not serialized, so imports require
 the widget to already exist. Complex control compositions are outside this format's

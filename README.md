@@ -4,7 +4,7 @@
 [![Simulation](https://img.shields.io/badge/Simulation-S7--PLCSIM%20Advanced%20V8.0-008080.svg)](https://support.industry.siemens.com)
 [![Protocol](https://img.shields.io/badge/MCP-2024--11--05-blue.svg)](https://modelcontextprotocol.io)
 [![Runtime](https://img.shields.io/badge/.NET%20Framework-4.8%20x64-512BD4.svg)](https://dotnet.microsoft.com)
-[![Version](https://img.shields.io/badge/Version-v0.0.3-blue.svg)](#version-history--bug-fixes)
+[![Version](https://img.shields.io/badge/Version-v0.0.4-blue.svg)](#version-history--bug-fixes)
 [![Tools](https://img.shields.io/badge/Tools-68%20Registered-brightgreen.svg)](#complete-tools-reference-dictionary-68-tools)
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
 
@@ -128,12 +128,12 @@ flowchart TD
 
 HMI JSON exports are organized as `manifest.json`, `screens/`, `tags/`, `alarms/discrete.json`, and optional shared `styles.json`. File hashes are verified by default on import; use `verify_hashes: false` only when intentionally editing exported files without updating their manifest hashes. Imports support a dry run and optional item pruning; patch files support guarded set/bind/delete operations and verification requirements.
 
-Tag and Expression dynamizations preserve value converters and typed Simple/Range mappings.
+Tag and Expression dynamizations preserve value converters and typed Simple/Range/Bitmask mappings.
 Faceplates retain their contained-type identity; internal tags retain their data type and unset limits.
 Custom widgets export supported full properties but must already exist when importing; their
 interfaces and complex control compositions are not serialized. Inspect manifest warnings;
-the JSON export is not a complete project backup. Unsupported dynamizations, bitmask mappings,
-and tag-based limits fail explicitly.
+the JSON export is not a complete project backup. Unsupported dynamizations and tag-based
+limits fail explicitly.
 
 #### Offline screen rendering for AI layout review
 
@@ -713,6 +713,10 @@ This repository includes 3 turnkey agent skills located in `.agents/skills/`:
 ---
 
 ## Version History & Bug Fixes
+
+### [v0.0.4] - 2026-11-10
+* Added lossless HMI JSON export/import for bitmask converter entries, including the TIA-generated relevant masks.
+* Updated the reported MCP server version and assembly metadata to v0.0.4.
 
 ### [v0.0.3] - 2026-11-10
 * Added screen, item, and property context to HMI JSON export errors for unsupported dynamizations and mapping entries.

@@ -10,7 +10,9 @@ using System.Text.Json;
 using Siemens.Engineering;
 using Siemens.Engineering.HmiUnified.UI.Base;
 using Siemens.Engineering.HmiUnified.UI.Dynamization;
+using Siemens.Engineering.HmiUnified.UI.Dynamization.Tag;
 using Siemens.Engineering.HmiUnified.UI.Screens;
+using Siemens.Engineering.HmiUnified.UI.Widgets;
 using TiaOpennessMcp.Tia;
 
 class HmiJsonTests
@@ -101,6 +103,53 @@ class HmiJsonTests
         object invalid = Document("HmiJsonMappingValue");
         Set(invalid, "Type", "ArbitraryObject");
         Reject(() => Invoke("ReadMappingValue", invalid), "unknown value type");
+        object bitmaskEntry = Document("HmiJsonMappingEntry");
+        Set(bitmaskEntry, "Type", "Bitmask");
+        Set(bitmaskEntry, "BitDynamizationType", "MultiBit");
+        Set(bitmaskEntry, "Condition", JsonSerializer.SerializeToElement(UInt64.MaxValue));
+        Set(bitmaskEntry, "Relevant", UInt64.MaxValue);
+        object bitmaskConverter = Document("HmiJsonValueConverter");
+        Set(bitmaskConverter, "Formula", "");
+        Set(bitmaskConverter, "ConditionType", "Bitmask");
+        var bitmaskEntries = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(bitmaskEntry.GetType()));
+        bitmaskEntries.Add(bitmaskEntry);
+        Set(bitmaskConverter, "Entries", bitmaskEntries);
+        Invoke("ValidateValueConverter", bitmaskConverter);
+        Check(Json(bitmaskEntry).Contains("\"Condition\":18446744073709551615") &&
+            Json(bitmaskEntry).Contains("\"Relevant\":18446744073709551615"),
+            "bitmask unsigned 64-bit values retain full precision");
+        object simpleEntry = Document("HmiJsonMappingEntry");
+        Set(simpleEntry, "Type", "Simple");
+        Set(simpleEntry, "Condition", JsonSerializer.SerializeToElement("=="));
+        object rangeEntry = Document("HmiJsonMappingEntry");
+        Set(rangeEntry, "Type", "Range");
+        Set(rangeEntry, "From", Invoke("CreateMappingValue", 1));
+        Set(rangeEntry, "To", Invoke("CreateMappingValue", 10));
+        var simpleRangeEntries = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(simpleEntry.GetType()));
+        simpleRangeEntries.Add(simpleEntry);
+        simpleRangeEntries.Add(rangeEntry);
+        object simpleRangeConverter = Document("HmiJsonValueConverter");
+        Set(simpleRangeConverter, "Formula", "");
+        Set(simpleRangeConverter, "ConditionType", "None");
+        Set(simpleRangeConverter, "Entries", simpleRangeEntries);
+        Invoke("ValidateValueConverter", simpleRangeConverter);
+        Check(Json(simpleEntry).Contains("\"Condition\":\"==\"") &&
+            Json(rangeEntry).Contains("\"From\"") && Json(rangeEntry).Contains("\"To\""),
+            "Simple and Range mapping document shapes remain unchanged");
+        object missingRelevant = Document("HmiJsonMappingEntry");
+        Set(missingRelevant, "Type", "Bitmask");
+        Set(missingRelevant, "BitDynamizationType", "SingleBit");
+        Set(missingRelevant, "Condition", JsonSerializer.SerializeToElement(1UL));
+        var missingRelevantEntries = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(missingRelevant.GetType()));
+        missingRelevantEntries.Add(missingRelevant);
+        object missingRelevantConverter = Document("HmiJsonValueConverter");
+        Set(missingRelevantConverter, "Formula", "");
+        Set(missingRelevantConverter, "ConditionType", "Bitmask");
+        Set(missingRelevantConverter, "Entries", missingRelevantEntries);
+        Reject(() => Invoke("ValidateValueConverter", missingRelevantConverter), "bitmask requires relevant mask");
+        Set(bitmaskEntry, "BitDynamizationType", "Unknown");
+        Reject(() => Invoke("ValidateValueConverter", bitmaskConverter), "invalid bitmask dynamization type");
+        Set(bitmaskEntry, "BitDynamizationType", "MultiBit");
         object expression = Document("HmiJsonDynamization");
         Set(expression, "Type", "Expression");
         Set(expression, "Property", "Enabled");
@@ -140,6 +189,22 @@ class HmiJsonTests
             using (var transaction = access.Transaction(manager.CurrentProject, "HMI JSON regression tests - rollback"))
             {
                 HmiScreen temporary = hmi.Screens.Create(name);
+                var bitmaskSource = temporary.ScreenItems.Create<HmiButton>("__BitmaskSource");
+                var bitmaskDynamization = bitmaskSource.Dynamizations.Create<ExpressionDynamization>("BackColor");
+                bitmaskDynamization.ValueConverter.MappingTable.ConditionType = ConditionType.Bitmask;
+                var generatedBitmasks = bitmaskDynamization.ValueConverter.MappingTable.Entries
+                    .Create(BitDynamizationType.SingleBit);
+                Check(generatedBitmasks.Count > 0, "TIA creates bitmask entries through its bitmask factory");
+                object bitmaskDocument = Invoke("CreateDynamizationDocument", bitmaskDynamization);
+                var bitmaskTarget = temporary.ScreenItems.Create<HmiButton>("__BitmaskTarget");
+                var bitmaskDynamizations = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(
+                    typeof(TiaManager).GetNestedType("HmiJsonDynamization", BindingFlags.NonPublic)));
+                bitmaskDynamizations.Add(bitmaskDocument);
+                Invoke("ApplyDynamizations", hmi, bitmaskTarget, bitmaskDynamizations, true);
+                object bitmaskReadBack = Invoke("CreateDynamizationDocument",
+                    bitmaskTarget.Dynamizations.Find("BackColor"));
+                Check(Json(bitmaskDocument) == Json(bitmaskReadBack),
+                    "live bitmask converter API create and read-back");
                 int index = 0;
                 foreach (var source in allItems)
                 {

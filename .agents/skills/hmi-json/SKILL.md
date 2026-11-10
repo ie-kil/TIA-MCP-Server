@@ -118,8 +118,10 @@ Conventions:
   `"onConflict": "replace"`.
 - Expression dynamizations use `type: "Expression"` and a required `valueConverter`.
   Both tag and expression converters preserve `formula`, `isFormulaSelected`,
-  `conditionType`, and ordered `entries`. Simple entries have `condition`; Range
-  entries have typed `from` and `to`. Their `value` and `alternateValue` use
+  `conditionType`, and ordered `entries`. Simple entries have a string `condition`;
+  Range entries have typed `from` and `to`. Bitmask entries preserve the enum
+  `bitDynamizationType`, unsigned 64-bit `condition`, and TIA-generated unsigned
+  64-bit `relevant` mask. Their `value` and `alternateValue` use
   `{ "type": "Boolean", "value": true }` (or the exported CLR primitive/color type).
   Preserve typed values and raw ProjectText markup verbatim, plus `flashing` and
   `flashingRate`. Do not replace mapping-table expressions with a guessed formula.
@@ -149,10 +151,11 @@ Conventions:
    file's SHA-256 entry in `manifest.json`; if hashes are intentionally not refreshed,
    pass `verify_hashes: false` to `hmi_import_json` and clearly disclose that
    integrity checks were bypassed. Do not change hashes for unedited files.
-6. Import supports Tag and Expression dynamizations with Simple/Range converter
-   mappings. Other dynamization/mapping kinds fail explicitly. Legacy
-   `ExpressionDynamization` placeholders lack converter data: re-export rather than
-   attempting to import them.
+6. Import supports Tag and Expression dynamizations with Simple/Range/Bitmask
+   converter mappings. TIA creates bitmask entries and import verifies their
+   generated relevant masks against the JSON. Other dynamization/mapping kinds fail
+   explicitly. Legacy `ExpressionDynamization` placeholders lack converter data:
+   re-export rather than attempting to import them.
 
 ## Render images for AI layout checking
 
@@ -307,7 +310,7 @@ patch. The patch also compiles and leaves the project unsaved.
   widget interfaces are not serialized. Custom widgets must already exist in the
   destination; their creation identity is not exposed by the V21 public API.
   Their existing interface is left untouched, not recreated from JSON.
-- Bitmask converter entries and tag-based limits are unsupported and fail explicitly.
+- Unsupported converter entry kinds and tag-based limits fail explicitly.
 - Preserve validation and compiler diagnostics in the final report. Never describe
   an unsuccessful compile as a verified result.
 
