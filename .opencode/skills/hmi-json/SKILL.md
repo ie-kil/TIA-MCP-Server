@@ -50,7 +50,11 @@ For other Openness operations, use `tia-portal-openness`.
 1. Check the TIA connection and active project using `tia_get_status`. If not connected,
    follow the connection procedure in `tia-portal-openness`.
 2. Resolve the intended target with `hmi_list_targets` when needed.
-3. Call `hmi_export_json` with an absolute `output_directory`. For example:
+3. Call `hmi_export_json` with an absolute `output_directory` when the caller can
+   access the server filesystem. For remote clients without a shared filesystem, omit
+   `output_directory`; the tool creates a staged transfer and returns a `transferId`
+   and `files` list. Read each listed file through `hmi_read_export_file`, decoding the
+   returned Base64 chunks in order.
 
    ```json
    {
@@ -61,10 +65,17 @@ For other Openness operations, use `tia-portal-openness`.
    }
    ```
 
-4. Read the returned directory, target name, counts, screen paths, and hashes. Inspect
-   the manifest and relevant exported files before making claims about the design.
+4. Read the returned local directory or fetch the staged `manifest.json`, target name,
+   screen files, and other relevant files. Inspect them before making claims about the
+   design; the manifest contains the file hashes.
 5. Keep the export structure intact and make focused edits. Preserve screen item array
    order: it represents visual stacking order.
+
+For remote transfers, create an import staging area with `hmi_begin_import`, then upload
+the edited `manifest.json` and every referenced file with `hmi_upload_import_file`.
+Files must be uploaded as sequential Base64 chunks, starting at offset 0 and continuing
+from each response's `receivedBytes`; each file is limited to 10 MiB and each transfer
+to 100 MiB. Staging transfers expire after 24 hours.
 
 `compact` defaults to true and omits properties equal to the TIA-created defaults for
 that item type. `script_files` defaults to false. When true, scripts are written as
@@ -206,7 +217,9 @@ reviews reproducible; otherwise en-US is preferred, then the first manifest lang
 ## Import workflow
 
 1. Confirm with the user the exact project, HMI target, files, and intended changes.
-2. Run `hmi_import_json` with `dry_run: true`, the input directory, and exact target.
+2. Run `hmi_import_json` with `dry_run: true`, either the input directory or completed
+   transfer ID, and exact target. Provide exactly one of `input_directory` and
+   `transfer_id`.
    Use `verify_hashes: true` when hashes were refreshed. If files were intentionally
    edited without refreshing hashes, use `verify_hashes: false` for the preview and
    clearly note the integrity-check bypass.
