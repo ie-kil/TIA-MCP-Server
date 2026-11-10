@@ -497,19 +497,88 @@ namespace TiaOpennessMcp.Tools
             Register("hmi_export_json", "Export a Unified HMI target as a versioned JSON directory containing screens, tag tables, alarms, optional styles, and file hashes.",
                 schema =>
                 {
-                    schema.Properties["output_directory"] = new ToolProperty { Type = "string", Description = "Directory to write the hmi/<Target> JSON export." };
+                    schema.Properties["output_directory"] = new ToolProperty { Type = "string", Description = "Optional local server directory. Omit to create a remote-readable staged export and return its transfer_id." };
                     schema.Properties["compact"] = new ToolProperty { Type = "boolean", Description = "Omit item properties equal to their TIA-created type defaults (default: true)." };
                     schema.Properties["script_files"] = new ToolProperty { Type = "boolean", Description = "Write event scripts into .js sidecar files instead of inline JSON strings (default: false)." };
                     schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software/device selector (optional when only one target exists)." };
-                    schema.Required = new List<string> { "output_directory" };
                 },
                 args =>
                 {
-                    string directory = GetStringProp(args, "output_directory") ?? throw new ArgumentException("output_directory is required.");
+                    string? directory = GetStringProp(args, "output_directory");
                     bool compact = GetBoolProp(args, "compact", true);
                     bool scriptFiles = GetBoolProp(args, "script_files", false);
                     string? target = GetStringProp(args, "target_name");
-                    return CallToolResult.Json(TiaManager.Instance.ExportHmiJson(directory, compact, scriptFiles, target));
+                    string? transferId = null;
+                    if (string.IsNullOrWhiteSpace(directory))
+                        transferId = HmiJsonTransferStore.CreateExport(out directory);
+                    string exportDirectory = directory ?? throw new InvalidOperationException("The export directory could not be resolved.");
+                    try
+                    {
+                        Dictionary<string, object> result = TiaManager.Instance.ExportHmiJson(exportDirectory, compact, scriptFiles, target);
+                        if (transferId != null)
+                        {
+                            result.Remove("directory");
+                            result.Remove("fileHashes");
+                            result["transferId"] = transferId;
+                            result["files"] = HmiJsonTransferStore.ListFiles(transferId);
+                        }
+                        return CallToolResult.Json(result);
+                    }
+                    catch
+                    {
+                        if (transferId != null)
+                            HmiJsonTransferStore.Delete(transferId);
+                        throw;
+                    }
+                });
+
+            Register("hmi_read_export_file", "Read a staged HMI JSON export file in bounded Base64 chunks.",
+                schema =>
+                {
+                    schema.Properties["transfer_id"] = new ToolProperty { Type = "string", Description = "Transfer ID returned by hmi_export_json." };
+                    schema.Properties["relative_path"] = new ToolProperty { Type = "string", Description = "Export file path, such as manifest.json or screens/0001-Main.json." };
+                    schema.Properties["offset"] = new ToolProperty { Type = "integer", Description = "Byte offset (default: 0); use nextOffset from the previous response." };
+                    schema.Properties["chunk_bytes"] = new ToolProperty { Type = "integer", Description = "Maximum bytes to return (default: 262144; maximum: 524288)." };
+                    schema.Required = new List<string> { "transfer_id", "relative_path" };
+                },
+                args =>
+                {
+                    string transferId = GetStringProp(args, "transfer_id") ?? throw new ArgumentException("transfer_id is required.");
+                    string relativePath = GetStringProp(args, "relative_path") ?? throw new ArgumentException("relative_path is required.");
+                    long offset = GetLongProp(args, "offset") ?? 0;
+                    int chunkBytes = GetIntProp(args, "chunk_bytes") ?? 0;
+                    return CallToolResult.Json(HmiJsonTransferStore.ReadChunk(transferId, relativePath, offset, chunkBytes));
+                });
+
+            Register("hmi_begin_import", "Create a temporary HMI JSON import transfer. Upload manifest.json and every referenced file with hmi_upload_import_file.",
+                schema => { },
+                args => CallToolResult.Json(new Dictionary<string, object>
+                {
+                    ["transferId"] = HmiJsonTransferStore.CreateImport(),
+                    ["maxFileBytes"] = 10 * 1024 * 1024,
+                    ["maxTransferBytes"] = 100 * 1024 * 1024,
+                    ["maxChunkBytes"] = 512 * 1024,
+                    ["expiresAfterHours"] = 24
+                }));
+
+            Register("hmi_upload_import_file", "Upload a file to a staged HMI JSON import using sequential Base64 chunks.",
+                schema =>
+                {
+                    schema.Properties["transfer_id"] = new ToolProperty { Type = "string", Description = "Import transfer ID returned by hmi_begin_import." };
+                    schema.Properties["relative_path"] = new ToolProperty { Type = "string", Description = "Relative file path, such as manifest.json or screens/0001-Main.json." };
+                    schema.Properties["content_base64"] = new ToolProperty { Type = "string", Description = "Base64-encoded bytes for this chunk; chunks are limited to 512 KiB decoded." };
+                    schema.Properties["offset"] = new ToolProperty { Type = "integer", Description = "Byte offset of this chunk; begin at zero and use receivedBytes from the previous response." };
+                    schema.Properties["total_bytes"] = new ToolProperty { Type = "integer", Description = "Total decoded file size in bytes, no more than 10 MiB." };
+                    schema.Required = new List<string> { "transfer_id", "relative_path", "content_base64", "offset", "total_bytes" };
+                },
+                args =>
+                {
+                    string transferId = GetStringProp(args, "transfer_id") ?? throw new ArgumentException("transfer_id is required.");
+                    string relativePath = GetStringProp(args, "relative_path") ?? throw new ArgumentException("relative_path is required.");
+                    string content = GetStringProp(args, "content_base64") ?? throw new ArgumentException("content_base64 is required.");
+                    long offset = GetLongProp(args, "offset") ?? throw new ArgumentException("offset is required.");
+                    long totalBytes = GetLongProp(args, "total_bytes") ?? throw new ArgumentException("total_bytes is required.");
+                    return CallToolResult.Json(HmiJsonTransferStore.WriteChunk(transferId, relativePath, content, offset, totalBytes));
                 });
 
             Register("hmi_render_json", "Render exported Unified HMI JSON offline to lossless PNG previews, numbered layout overlays and geometry/warnings reports. Resolves static nested screen windows; never connects to TIA or executes scripts. Complex controls use explicit placeholders.",
@@ -531,24 +600,33 @@ namespace TiaOpennessMcp.Tools
                         GetStringProp(args, "screen_name"), GetStringProp(args, "language"), scale));
                 });
 
-            Register("hmi_import_json", "Upsert a versioned Unified HMI JSON directory under an Openness transaction, verify it, compile, and never save the project.",
+            Register("hmi_import_json", "Upsert a versioned Unified HMI JSON directory or staged transfer under an Openness transaction, verify it, compile, and never save the project.",
                 schema =>
                 {
-                    schema.Properties["input_directory"] = new ToolProperty { Type = "string", Description = "Directory containing manifest.json and the referenced screen/tag/alarm files." };
+                    schema.Properties["input_directory"] = new ToolProperty { Type = "string", Description = "Server-local directory containing manifest.json and referenced files. Use this or transfer_id, not both." };
+                    schema.Properties["transfer_id"] = new ToolProperty { Type = "string", Description = "Staged import ID returned by hmi_begin_import. Use this or input_directory, not both." };
                     schema.Properties["prune_items"] = new ToolProperty { Type = "boolean", Description = "Delete screen items absent from imported screen files (default: false)." };
                     schema.Properties["dry_run"] = new ToolProperty { Type = "boolean", Description = "Validate the files and target without making changes (default: false)." };
                     schema.Properties["verify_hashes"] = new ToolProperty { Type = "boolean", Description = "Verify exported file hashes (default: true). Set false only when intentionally editing exported JSON without refreshing manifest hashes." };
                     schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software/device selector (optional when only one target exists)." };
-                    schema.Required = new List<string> { "input_directory" };
                 },
                 args =>
                 {
-                    string directory = GetStringProp(args, "input_directory") ?? throw new ArgumentException("input_directory is required.");
+                    string? directory = GetStringProp(args, "input_directory");
+                    string? transferId = GetStringProp(args, "transfer_id");
+                    if (string.IsNullOrWhiteSpace(directory) == string.IsNullOrWhiteSpace(transferId))
+                        throw new ArgumentException("Provide exactly one of input_directory or transfer_id.");
+                    if (transferId != null)
+                    {
+                        HmiJsonTransferStore.EnsureUploadsComplete(transferId);
+                        directory = HmiJsonTransferStore.GetDirectory(transferId, "import");
+                    }
+                    string importDirectory = directory ?? throw new InvalidOperationException("The import directory could not be resolved.");
                     bool pruneItems = GetBoolProp(args, "prune_items", false);
                     bool dryRun = GetBoolProp(args, "dry_run", false);
                     bool verifyHashes = GetBoolProp(args, "verify_hashes", true);
                     string? target = GetStringProp(args, "target_name");
-                    return CallToolResult.Json(TiaManager.Instance.ImportHmiJson(directory, pruneItems, dryRun, target, verifyHashes));
+                    return CallToolResult.Json(TiaManager.Instance.ImportHmiJson(importDirectory, pruneItems, dryRun, target, verifyHashes));
                 });
 
             Register("hmi_patch_json", "Validate or apply declarative Unified HMI JSON set/bind/delete operations with require and verify guards; changes are transactional, compiled, and never saved.",
@@ -1463,6 +1541,17 @@ namespace TiaOpennessMcp.Tools
                 element.Value.TryGetProperty(propName, out var prop))
             {
                 if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out int val))
+                    return val;
+            }
+            return null;
+        }
+
+        private static long? GetLongProp(JsonElement? element, string propName)
+        {
+            if (element.HasValue && element.Value.ValueKind == JsonValueKind.Object &&
+                element.Value.TryGetProperty(propName, out var prop))
+            {
+                if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt64(out long val))
                     return val;
             }
             return null;

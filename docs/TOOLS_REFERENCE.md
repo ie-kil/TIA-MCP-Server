@@ -1,5 +1,5 @@
 # Siemens TIA Portal V21 Openness MCP Server
-## Complete Tools Reference Dictionary (68 Tools)
+## Complete Tools Reference Dictionary (71 Tools)
 
 **Protocol Specification:** Model Context Protocol (MCP) JSON-RPC 2.0  
 **Transport Binding:** HTTP (`POST /mcp`), SSE (`GET /sse`), stdio  
@@ -15,7 +15,7 @@
 | **1** | [Connection & Session Management](#category-1-connection--session-management-8-tools) | 8 | `tia_get_status`, `tia_list_processes`, `tia_connect`, `tia_disconnect`, `tia_get_project_info`, `tia_open_project`, `tia_save_project`, `tia_close_project` |
 | **2** | [Hardware & Device Topology](#category-2-hardware--device-topology-2-tools) | 2 | `tia_list_devices`, `tia_get_device_tree` |
 | **3** | [PLC Software, Blocks & Compilation](#category-3-plc-software-blocks--compilation-9-tools) | 9 | `tia_list_plcs`, `tia_list_blocks`, `tia_get_block_code`, `tia_import_block`, `tia_delete_block`, `tia_list_plc_types`, `tia_get_plc_type`, `tia_import_plc_type`, `tia_compile` |
-| **4** | [WinCC Unified HMI Engineering](#category-4-wincc-unified-hmi-screen--widget-engineering-35-tools) | 35 | `hmi_list_targets`, `hmi_list_screens`, `hmi_create_screen`, `hmi_delete_screen`, `hmi_get_screen_items`, `hmi_delete_screen_items`, `hmi_add_label`, `hmi_add_button`, `hmi_add_toggle_switch`, `hmi_add_shape`, `hmi_add_io_field`, `hmi_set_tag_dynamization`, `hmi_update_button_scripts`, `hmi_list_tag_tables`, `hmi_list_tags`, `hmi_create_tag`, `hmi_create_discrete_alarm`, `hmi_update_tag_acquisition_cycles`, `hmi_set_tag_range`, `hmi_create_data_log`, `hmi_assign_logging_tags`, `hmi_list_connections`, `hmi_create_connection`, `hmi_delete_connection`, `hmi_list_text_lists`, `hmi_create_text_list`, `hmi_delete_text_list`, `hmi_export_text_lists`, `hmi_compile`, `tia_list_tag_tables`, `tia_get_tags`, `hmi_export_json`, `hmi_import_json`, `hmi_patch_json`, `hmi_render_json` |
+| **4** | [WinCC Unified HMI Engineering](#category-4-wincc-unified-hmi-screen--widget-engineering-38-tools) | 38 | `hmi_list_targets`, `hmi_list_screens`, `hmi_create_screen`, `hmi_delete_screen`, `hmi_get_screen_items`, `hmi_delete_screen_items`, `hmi_add_label`, `hmi_add_button`, `hmi_add_toggle_switch`, `hmi_add_shape`, `hmi_add_io_field`, `hmi_set_tag_dynamization`, `hmi_update_button_scripts`, `hmi_list_tag_tables`, `hmi_list_tags`, `hmi_create_tag`, `hmi_create_discrete_alarm`, `hmi_update_tag_acquisition_cycles`, `hmi_set_tag_range`, `hmi_create_data_log`, `hmi_assign_logging_tags`, `hmi_list_connections`, `hmi_create_connection`, `hmi_delete_connection`, `hmi_list_text_lists`, `hmi_create_text_list`, `hmi_delete_text_list`, `hmi_export_text_lists`, `hmi_compile`, `tia_list_tag_tables`, `tia_get_tags`, `hmi_export_json`, `hmi_read_export_file`, `hmi_begin_import`, `hmi_upload_import_file`, `hmi_import_json`, `hmi_patch_json`, `hmi_render_json` |
 | **5** | [Siemens TestSuite Automation](#category-5-siemens-testsuite-automation-2-tools) | 2 | `tia_testsuite_list_tests`, `tia_testsuite_load_test` |
 | **6** | [S7-PLCSIM Advanced Live Simulation & Testing](#category-6-s7-plcsim-advanced-live-simulation--testing-12-tools) | 12 | `plcsim_list_instances`, `plcsim_connect`, `plcsim_disconnect`, `plcsim_get_status`, `plcsim_set_operating_state`, `plcsim_set_scale_factor`, `plcsim_read_tag`, `plcsim_write_tag`, `plcsim_read_tags`, `plcsim_write_tags`, `plcsim_run_sequence`, `plcsim_run_mixing_sequence` |
 
@@ -344,7 +344,7 @@
 
 ---
 
-## Category 4: WinCC Unified HMI Screen & Widget Engineering (35 Tools)
+## Category 4: WinCC Unified HMI Screen & Widget Engineering (38 Tools)
 
 ### 20. `hmi_list_targets`
 - **Description:** Enumerates all WinCC Unified runtime devices and software containers.
@@ -960,10 +960,23 @@
 - **Parameters:**
   | Parameter | Type | Required | Default | Description |
   | :--- | :---: | :---: | :---: | :--- |
-  | `output_directory` | string | **Yes** | — | Destination directory for `manifest.json`, `screens/`, `tags/`, and `alarms/`. |
+  | `output_directory` | string | No | staged transfer | Optional server-local destination. Omit for a remote-readable export; response includes `transferId` and `files`. |
   | `compact` | boolean | No | `true` | Omit item properties equal to the TIA-created type defaults. |
   | `script_files` | boolean | No | `false` | Store event scripts as `.js` sidecar files rather than inline strings. |
   | `target_name` | string | No | null | Target HMI software/device selector. |
+
+### `hmi_read_export_file`
+- **Purpose:** Fetch one file from a staged export. The result contains Base64-encoded bytes so JSON and script files round-trip exactly.
+- **Parameters:** `transfer_id`, `relative_path`, optional `offset` (default 0), and optional `chunk_bytes` (default 262144; maximum 524288).
+- **Chunking:** Decode `contentBase64`, append it at `offset`, then request the next chunk at `nextOffset` until `complete` is true. Each file is limited to 10 MiB and each staged export to 100 MiB.
+
+### `hmi_begin_import`
+- **Purpose:** Create a server-side staging area and return a `transferId` for a remote import.
+- **Limits:** 10 MiB per file, 100 MiB per transfer, 5000 files, 512 KiB per uploaded chunk. Transfers expire after 24 hours.
+
+### `hmi_upload_import_file`
+- **Purpose:** Upload one relative-path file into a staged import as sequential Base64 chunks.
+- **Parameters:** `transfer_id`, `relative_path`, `content_base64`, `offset`, and `total_bytes`. Start each file at offset 0; continue using `receivedBytes` until `complete` is true.
 
 **JSON fidelity:** Tag and Expression dynamizations include their value converters,
 ordered Simple/Range/Bitmask mapping entries, typed values, flashing settings, and raw
@@ -986,11 +999,21 @@ Compact exports also contain a hashed `defaults.json`, referenced by manifest
 - **Parameters:**
   | Parameter | Type | Required | Default | Description |
   | :--- | :---: | :---: | :---: | :--- |
-  | `input_directory` | string | **Yes** | — | Directory containing `manifest.json` and referenced JSON/script files. |
+  | `input_directory` | string | One required | — | Server-local directory containing `manifest.json` and referenced JSON/script files. |
+  | `transfer_id` | string | One required | — | Completed upload ID from `hmi_begin_import`; use instead of `input_directory`. |
   | `prune_items` | boolean | No | `false` | Delete screen items absent from imported screen files. |
   | `dry_run` | boolean | No | `false` | Validate the files and target without making changes. |
   | `verify_hashes` | boolean | No | `true` | Verify exported hashes. Set false only for intentional edits that have not refreshed manifest hashes. |
   | `target_name` | string | No | null | Target HMI software/device selector. |
+
+`input_directory` and `transfer_id` are mutually exclusive. For remote OpenCode clients,
+omit `output_directory` on export, fetch the returned file list with
+`hmi_read_export_file`, then create an import transfer and upload the edited manifest
+and all referenced files with `hmi_upload_import_file`. Use `hmi_import_json` with
+`dry_run: true` before authorizing an actual import. Staging paths are confined to
+server-managed transfer directories; no arbitrary server path is accepted by transfer
+tools. Edited files must have refreshed manifest hashes, or the import preview must
+explicitly set `verify_hashes: false`.
 
 ---
 
