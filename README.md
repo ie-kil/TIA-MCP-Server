@@ -659,6 +659,7 @@ To run the server as a persistent HTTP/SSE service accessible across multiple ag
 - **MCP Endpoint**: `POST http://localhost:5001/mcp`
 - **Server-Sent Events (SSE)**: `GET http://localhost:5001/sse`
 - **Health & Telemetry**: `GET http://localhost:5001/status`
+- **Console diagnostics**: HTTP method/path, response status and duration, JSON-RPC methods, and tool execution progress are logged to stderr. Timeouts and request/tool errors are logged as they occur. Query strings and request bodies are omitted by default; to log them, set `"logHttpRequestDetails": true` in the `server` section of `config.json`. This can expose session IDs, credentials, PLC values, and project data in console logs.
 
 ---
 

@@ -4,7 +4,8 @@
     "port": 5001,
     "mode": "HttpAndStdio",
     "enableCors": true,
-    "requireBearerToken": true
+    "requireBearerToken": true,
+    "logHttpRequestDetails": false
   },
   "tia": {
     "autoConnect": false,

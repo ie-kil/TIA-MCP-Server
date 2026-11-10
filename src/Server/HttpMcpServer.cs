@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Security.Cryptography;
@@ -142,44 +143,49 @@ namespace TiaOpennessMcp.Server
         {
             var req = context.Request;
             var res = context.Response;
-
-            string? origin = req.Headers["Origin"];
-            if (_config.Server.EnableCors && origin != null && _corsAllowedOrigins.Contains(origin))
-            {
-                res.AddHeader("Access-Control-Allow-Origin", origin);
-                res.AddHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-                res.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
-                res.AddHeader("Vary", "Origin");
-            }
-
-            if (req.HttpMethod.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
-            {
-                res.StatusCode = (int)HttpStatusCode.NoContent;
-                res.Close();
-                return;
-            }
-
-            if (_config.Server.RequireBearerToken)
-            {
-                string authorization = req.Headers["Authorization"] ?? "";
-                const string bearerPrefix = "Bearer ";
-                string providedToken = authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
-                    ? authorization.Substring(bearerPrefix.Length).Trim()
-                    : "";
-                if (string.IsNullOrEmpty(providedToken) || !FixedTimeEquals(providedToken, _bearerToken))
-                {
-                    res.StatusCode = (int)HttpStatusCode.Unauthorized;
-                    res.AddHeader("WWW-Authenticate", "Bearer");
-                    res.Close();
-                    return;
-                }
-            }
-
             string rawPath = req.Url?.AbsolutePath ?? "/";
-            string path = rawPath.TrimEnd('/').ToLowerInvariant();
+            string requestTarget = _config.Server.LogHttpRequestDetails
+                ? req.Url?.PathAndQuery ?? rawPath
+                : rawPath;
+            var requestTimer = Stopwatch.StartNew();
+            Console.Error.WriteLine($"[HttpMcpServer] Request: {req.HttpMethod} {requestTarget}");
 
             try
             {
+                string? origin = req.Headers["Origin"];
+                if (_config.Server.EnableCors && origin != null && _corsAllowedOrigins.Contains(origin))
+                {
+                    res.AddHeader("Access-Control-Allow-Origin", origin);
+                    res.AddHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                    res.AddHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
+                    res.AddHeader("Vary", "Origin");
+                }
+
+                if (req.HttpMethod.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+                {
+                    res.StatusCode = (int)HttpStatusCode.NoContent;
+                    res.Close();
+                    return;
+                }
+
+                if (_config.Server.RequireBearerToken)
+                {
+                    string authorization = req.Headers["Authorization"] ?? "";
+                    const string bearerPrefix = "Bearer ";
+                    string providedToken = authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
+                        ? authorization.Substring(bearerPrefix.Length).Trim()
+                        : "";
+                    if (string.IsNullOrEmpty(providedToken) || !FixedTimeEquals(providedToken, _bearerToken))
+                    {
+                        res.StatusCode = (int)HttpStatusCode.Unauthorized;
+                        res.AddHeader("WWW-Authenticate", "Bearer");
+                        res.Close();
+                        return;
+                    }
+                }
+
+                string path = rawPath.TrimEnd('/').ToLowerInvariant();
+
                 // Health & Status endpoints
                 if (path == "" || path == "/status" || path == "/health")
                 {
@@ -218,6 +224,16 @@ namespace TiaOpennessMcp.Server
                 await res.OutputStream.WriteAsync(notFoundBytes, 0, notFoundBytes.Length).ConfigureAwait(false);
                 res.Close();
             }
+            catch (TimeoutException ex)
+            {
+                Console.Error.WriteLine($"[HttpMcpServer] Request timed out: {req.HttpMethod} {rawPath}: {ex.Message}");
+                try
+                {
+                    res.StatusCode = (int)HttpStatusCode.GatewayTimeout;
+                    res.Close();
+                }
+                catch { }
+            }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"[HttpMcpServer] Error handling {req.HttpMethod} {rawPath}: {ex}");
@@ -231,6 +247,12 @@ namespace TiaOpennessMcp.Server
                     res.Close();
                 }
                 catch { }
+            }
+            finally
+            {
+                requestTimer.Stop();
+                Console.Error.WriteLine(
+                    $"[HttpMcpServer] Completed: {req.HttpMethod} {rawPath} -> {res.StatusCode} ({requestTimer.ElapsedMilliseconds} ms)");
             }
         }
 
@@ -358,10 +380,12 @@ namespace TiaOpennessMcp.Server
             {
                 body = await reader.ReadToEndAsync().ConfigureAwait(false);
             }
+            LogRequestBody(body);
 
             // Respond 202 Accepted immediately to POST
             res.StatusCode = (int)HttpStatusCode.Accepted;
             res.Close();
+            Console.Error.WriteLine($"[HttpMcpServer] Queued SSE RPC message for session {sessionId}.");
 
             // Process JSON-RPC request asynchronously and deliver result via SSE stream
             _ = Task.Run(() =>
@@ -373,6 +397,7 @@ namespace TiaOpennessMcp.Server
                     {
                         session.EnqueueMessage(responseJson);
                     }
+                    Console.Error.WriteLine($"[HttpMcpServer] Finished SSE RPC processing for session {sessionId}.");
                 }
                 catch (Exception ex)
                 {
@@ -391,6 +416,7 @@ namespace TiaOpennessMcp.Server
             {
                 body = await reader.ReadToEndAsync().ConfigureAwait(false);
             }
+            LogRequestBody(body);
 
             string responseJson = ProcessJsonRpcRequest(body);
             byte[] bytes = Encoding.UTF8.GetBytes(responseJson);
@@ -400,6 +426,14 @@ namespace TiaOpennessMcp.Server
             res.ContentLength64 = bytes.Length;
             await res.OutputStream.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
             res.Close();
+        }
+
+        private void LogRequestBody(string body)
+        {
+            if (_config.Server.LogHttpRequestDetails)
+            {
+                Console.Error.WriteLine($"[HttpMcpServer] Request body: {JsonSerializer.Serialize(body)}");
+            }
         }
 
         public string ProcessJsonRpcRequest(string rawJson)
@@ -416,6 +450,7 @@ namespace TiaOpennessMcp.Server
             }
             catch (Exception ex)
             {
+                Console.Error.WriteLine($"[HttpMcpServer] Invalid JSON-RPC request: {ex.Message}");
                 return JsonSerializer.Serialize(JsonRpcResponse.Fail(null, -32700, $"Parse error: {ex.Message}"), _jsonOptions);
             }
 
@@ -423,6 +458,8 @@ namespace TiaOpennessMcp.Server
             {
                 return JsonSerializer.Serialize(JsonRpcResponse.Fail(null, -32600, "Invalid Request"), _jsonOptions);
             }
+
+            Console.Error.WriteLine($"[HttpMcpServer] Processing JSON-RPC method '{req.Method}'.");
 
             // Notifications
             if (req.Method.StartsWith("notifications/") || req.Method == "exit")
@@ -490,8 +527,18 @@ namespace TiaOpennessMcp.Server
                 return JsonSerializer.Serialize(JsonRpcResponse.Fail(req.Id, -32602, "Missing 'name' in tools/call params"), _jsonOptions);
             }
 
-            var result = _toolRegistry.Execute(toolName!, toolArgs);
-            return JsonSerializer.Serialize(JsonRpcResponse.Success(req.Id, result), _jsonOptions);
+            var toolTimer = Stopwatch.StartNew();
+            Console.Error.WriteLine($"[HttpMcpServer] Executing tool '{toolName}'.");
+            try
+            {
+                var result = _toolRegistry.Execute(toolName!, toolArgs);
+                return JsonSerializer.Serialize(JsonRpcResponse.Success(req.Id, result), _jsonOptions);
+            }
+            finally
+            {
+                toolTimer.Stop();
+                Console.Error.WriteLine($"[HttpMcpServer] Tool '{toolName}' execution finished ({toolTimer.ElapsedMilliseconds} ms).");
+            }
         }
 
         public void Dispose()

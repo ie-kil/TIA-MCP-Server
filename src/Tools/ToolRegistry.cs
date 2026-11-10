@@ -28,6 +28,11 @@ namespace TiaOpennessMcp.Tools
                 {
                     return handler(args);
                 }
+                catch (TimeoutException ex)
+                {
+                    Console.Error.WriteLine($"[ToolRegistry] Timeout executing '{toolName}': {ex.Message}");
+                    return CallToolResult.Error($"Timed out executing '{toolName}': {ex.Message}");
+                }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine($"[ToolRegistry] Error executing '{toolName}': {ex}");
