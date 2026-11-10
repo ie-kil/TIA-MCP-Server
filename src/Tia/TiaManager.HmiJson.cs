@@ -312,7 +312,12 @@ namespace TiaOpennessMcp.Tia
                 Props = props,
                 Text = text,
                 Items = screen.ScreenItems.Select(item =>
-                    CreateItemDocument(item, languages, defaults, compact)).ToList()
+                    CreateItemDocument(
+                        item,
+                        languages,
+                        defaults,
+                        compact,
+                        group == null ? screen.Name : group + "/" + screen.Name)).ToList()
             };
         }
 
@@ -383,7 +388,8 @@ namespace TiaOpennessMcp.Tia
             HmiScreenItemBase item,
             IReadOnlyList<string> languages,
             Dictionary<string, HmiJsonItem>? defaults = null,
-            bool compact = false)
+            bool compact = false,
+            string? screenPath = null)
         {
             var document = new HmiJsonItem
             {
@@ -418,7 +424,20 @@ namespace TiaOpennessMcp.Tia
                 }
             }
 
-            document.Dynamizations = item.Dynamizations.Select(CreateDynamizationDocument).ToList();
+            document.Dynamizations = item.Dynamizations.Select(dynamization =>
+            {
+                try
+                {
+                    return CreateDynamizationDocument(dynamization);
+                }
+                catch (InvalidDataException ex)
+                {
+                    throw new InvalidDataException(
+                        $"Failed to export dynamization on screen '{screenPath ?? "(unknown)"}', " +
+                        $"item '{item.Name}', property '{dynamization.PropertyName}': {ex.Message}",
+                        ex);
+                }
+            }).ToList();
 
             document.Events = ReadItemEvents(item);
             if (compact && defaults != null && defaults.TryGetValue(GetItemIdentityKey(document), out HmiJsonItem? defaultItem))
