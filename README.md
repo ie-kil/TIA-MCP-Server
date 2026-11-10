@@ -4,7 +4,7 @@
 [![Simulation](https://img.shields.io/badge/Simulation-S7--PLCSIM%20Advanced%20V8.0-008080.svg)](https://support.industry.siemens.com)
 [![Protocol](https://img.shields.io/badge/MCP-2024--11--05-blue.svg)](https://modelcontextprotocol.io)
 [![Runtime](https://img.shields.io/badge/.NET%20Framework-4.8%20x64-512BD4.svg)](https://dotnet.microsoft.com)
-[![Version](https://img.shields.io/badge/Version-v0.0.2-blue.svg)](release/release0.0.2.zip)
+[![Version](https://img.shields.io/badge/Version-v0.0.3-blue.svg)](#version-history--bug-fixes)
 [![Tools](https://img.shields.io/badge/Tools-68%20Registered-brightgreen.svg)](#complete-tools-reference-dictionary-68-tools)
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
 
@@ -713,6 +713,10 @@ This repository includes 3 turnkey agent skills located in `.agents/skills/`:
 ---
 
 ## Version History & Bug Fixes
+
+### [v0.0.3] - 2026-11-10
+* Added screen, item, and property context to HMI JSON export errors for unsupported dynamizations and mapping entries.
+* Updated the reported MCP server version and assembly metadata to v0.0.3.
 
 ### [v0.0.2] - 2026-10-03
 * **Fixed CI / GitHub Actions Missing Siemens Assemblies**: Resolved `The type or namespace name 'Siemens' could not be found` build failure on CI/CD runners and machines without Siemens TIA Portal pre-installed. Added reference assemblies to `src/lib/` with automatic fallback in `TiaOpennessMcp.csproj`, ensuring clean compilation on any standard Windows machine.
