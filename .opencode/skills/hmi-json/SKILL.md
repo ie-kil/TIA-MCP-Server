@@ -168,6 +168,44 @@ Conventions:
    explicitly. Legacy `ExpressionDynamization` placeholders lack converter data:
    re-export rather than attempting to import them.
 
+## In-place dynamization entry updates
+
+Use `hmi_update_dynamization_entry` when changing values or flashing settings on one
+existing mapping-table entry is more targeted than reimporting a screen. This directly
+modifies the selected project's in-memory engineering object; confirm the active
+project and HMI target, inspect the current dynamization, and get user authorization
+before calling it. It does not save the project.
+
+- Identify the item and dynamized property with `screen_name`, `item_name`, and
+  `property_name`. The existing dynamization must be a Tag or Expression dynamization.
+- `entry_index` is the zero-based position in the ordered mapping table, not a condition
+  value or bit number. Inspect the exported converter entries first to choose the index;
+  for example, the second entry has index `1`.
+- Set one or more of `new_value`, `new_alternate_value`, `new_flashing`, or
+  `new_flashing_rate`. At least one is required. Value objects use
+  `{ "type": "Color", "value": "#E80000" }`; the type must match the existing entry's
+  CLR value type (`Color`, `String`, `Boolean`, `Byte`, `Int16`, `UInt16`, `Int32`,
+  `UInt32`, `Int64`, `UInt64`, `Single`, `Double`, or `Decimal`). Numeric and boolean
+  values are encoded as strings in this tool input.
+- The tool changes only the selected entry's supplied fields. It preserves the
+  condition, mapping table order, and all unspecified fields and entries.
+- Verify the result with a fresh HMI JSON export and read the relevant screen file.
+  `hmi_get_screen_items` may omit Bitmask entries, so do not rely on it to verify a
+  Singlebit mapping table.
+
+Example: change the second BackColor entry to red:
+
+```json
+{
+  "screen_name": "Main_UnitControlSideBar",
+  "item_name": "UCS_Ind_Alarm",
+  "property_name": "BackColor",
+  "entry_index": 1,
+  "new_value": { "type": "Color", "value": "#E80000" },
+  "target_name": "HMI_RT_1"
+}
+```
+
 ## Render images for AI layout checking
 
 Use `hmi_render_json` directly on the exported files; it is offline and does not
@@ -328,4 +366,4 @@ patch. The patch also compiles and leaves the project unsaved.
   an unsuccessful compile as a verified result.
 
 For the authoritative tool argument descriptions, see
-[the HMI JSON tool reference](../../../docs/TOOLS_REFERENCE.md#category-4-wincc-unified-hmi-screen--widget-engineering-35-tools).
+[the HMI JSON tool reference](../../../docs/TOOLS_REFERENCE.md#category-4-wincc-unified-hmi-screen--widget-engineering-39-tools).
