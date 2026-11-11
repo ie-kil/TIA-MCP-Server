@@ -126,15 +126,15 @@ The TIA Openness MCP server operates as a persistent daemon process maintaining 
   ```
 
 ### Dynamization & Color Mapping
-Use **single-object dynamization** with `ConditionType.Range` instead of dual overlaid objects with visibility toggles:
-- **`hmi_set_tag_dynamization`**:
+Use **single-object dynamization** instead of dual overlaid objects with visibility toggles. Use `ConditionType.Singlebit` for Boolean tags and `ConditionType.Range` for numeric range mappings:
+- **`hmi_set_tag_dynamization`**, Boolean example:
   ```json
   {
     "screen_name": "Screen_2",
     "item_name": "circ_M101",
     "property_name": "BackColor",
     "tag_name": "HMI_MotorInfeed_RunFb",
-    "condition_type": "Range",
+    "condition_type": "Singlebit",
     "ranges": [
       { "from": 0, "to": 0, "value": "gray" },
       { "from": 1, "to": 1, "value": "green" }
@@ -348,7 +348,7 @@ To get the highest quality results when prompting agents equipped with this skil
 1. **Specify Exact Target & Scope**: Include HMI software name (`HMI_RT_1`), Screen (`Screen_2`), and CPU (`PLC_1`).
 2. **State & Action Clarity**: Differentiate between toggle (`InvertBitInTag`), momentary set (`SetBitInTag`), or value writing (`SetTagValue`).
 3. **Preserve Over Recreate**: For modifications, explicitly instruct: *"Modify existing items in-place using `hmi_update_button_scripts`; do not delete screen items."*
-4. **Single-Object Dynamization**: Always specify single-object range dynamization (`ConditionType.Range`) on `BackColor` rather than overlapping visibility objects.
+4. **Single-Object Dynamization**: Use `ConditionType.Singlebit` for Boolean status tags and `ConditionType.Range` for numeric ranges on `BackColor`, rather than overlapping visibility objects.
 5. **Always Enforce Verification**: Instruct the agent to run `hmi_compile` or `tia_compile` and verify that the operation finishes with 0 errors.
 
 ---
@@ -366,4 +366,3 @@ The MCP server integrates directly with **Siemens S7-PLCSIM Advanced API V8.0** 
 ### 7.2 Dedicated Verification Skill
 For executing automated multi-parameter batch testing, recipe matrix comparison, and verification report artifact generation, use the companion skill:
 👉 [`.agents/skills/plcsim-sequence-tester/SKILL.md`](file:///d:/TIA_Project/_AEs/TestMCP-DDup/UserFiles/AI/.agents/skills/plcsim-sequence-tester/SKILL.md)
-

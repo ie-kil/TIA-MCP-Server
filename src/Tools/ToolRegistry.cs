@@ -865,18 +865,18 @@ namespace TiaOpennessMcp.Tools
                 });
 
             // 32. hmi_set_tag_dynamization
-            Register("hmi_set_tag_dynamization", "Set tag dynamization on a screen item property (e.g. BackColor range dynamization linked to a tag with range entries).",
+            Register("hmi_set_tag_dynamization", "Set tag dynamization on a screen item property using numeric ranges or Boolean Singlebit mapping.",
                 schema =>
                 {
                     schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Screen name." };
                     schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Item name." };
                     schema.Properties["property_name"] = new ToolProperty { Type = "string", Description = "Property to dynamize (e.g. 'BackColor', 'Visibility')." };
                     schema.Properties["tag_name"] = new ToolProperty { Type = "string", Description = "HMI tag name to evaluate." };
-                    schema.Properties["condition_type"] = new ToolProperty { Type = "string", Description = "'None' or 'Range'." };
+                    schema.Properties["condition_type"] = new ToolProperty { Type = "string", Description = "'None', 'Range', or 'Singlebit'." };
                     schema.Properties["ranges"] = new ToolProperty
                     {
                         Type = "array",
-                        Description = "List of ranges: [{from: 0, to: 0, value: 'gray'}, {from: 1, to: 1, value: 'green'}].",
+                        Description = "For Range, list numeric from/to bounds. For Singlebit, provide exactly two entries with matching bounds 0/0 and 1/1; their values map the off/on states.",
                         Items = new ToolProperty
                         {
                             Type = "object",
@@ -1699,29 +1699,45 @@ namespace TiaOpennessMcp.Tools
             return null;
         }
 
-        private static List<RangeEntryDto>? GetRangesProp(JsonElement? element, string propName)
+        private static List<HmiRangeEntryInput>? GetRangesProp(JsonElement? element, string propName)
         {
             if (element.HasValue && element.Value.ValueKind == JsonValueKind.Object &&
                 element.Value.TryGetProperty(propName, out var prop) &&
                 prop.ValueKind == JsonValueKind.Array)
             {
-                var list = new List<RangeEntryDto>();
+                var list = new List<HmiRangeEntryInput>();
                 foreach (var item in prop.EnumerateArray())
                 {
-                    if (item.ValueKind == JsonValueKind.Object)
-                    {
-                        double from = 0.0, to = 0.0;
-                        string val = "";
-                        if (item.TryGetProperty("from", out var pFrom) && pFrom.TryGetDouble(out var dFrom)) from = dFrom;
-                        if (item.TryGetProperty("to", out var pTo) && pTo.TryGetDouble(out var dTo)) to = dTo;
-                        if (item.TryGetProperty("value", out var pVal)) val = pVal.GetString() ?? "";
+                    if (item.ValueKind != JsonValueKind.Object)
+                        throw new ArgumentException($"Each '{propName}' entry must be an object.");
+                    if (!item.TryGetProperty("from", out var pFrom))
+                        throw new ArgumentException($"Each '{propName}' entry must include a numeric 'from' value.");
+                    if (!item.TryGetProperty("to", out var pTo))
+                        throw new ArgumentException($"Each '{propName}' entry must include a numeric 'to' value.");
+                    if (!item.TryGetProperty("value", out var pVal) || pVal.ValueKind != JsonValueKind.String)
+                        throw new ArgumentException($"Each '{propName}' entry must include a string 'value'.");
 
-                        list.Add(new RangeEntryDto { From = from, To = to, Value = val });
-                    }
+                    list.Add(new HmiRangeEntryInput
+                    {
+                        From = GetRangeNumber(pFrom, propName, "from"),
+                        To = GetRangeNumber(pTo, propName, "to"),
+                        Value = pVal.GetString() ?? ""
+                    });
                 }
                 return list;
             }
             return null;
+        }
+
+        private static object GetRangeNumber(JsonElement value, string propName, string fieldName)
+        {
+            if (value.ValueKind != JsonValueKind.Number)
+                throw new ArgumentException($"'{fieldName}' in '{propName}' entries must be a number.");
+            if (value.TryGetInt32(out int intValue)) return intValue;
+            if (value.TryGetInt64(out long longValue)) return longValue;
+            if (value.TryGetUInt64(out ulong ulongValue)) return ulongValue;
+            if (value.TryGetDouble(out double doubleValue)) return doubleValue;
+            throw new ArgumentException($"'{fieldName}' in '{propName}' entries is outside the supported numeric range.");
         }
 
         private static List<TextListEntryInput> GetTextListEntries(JsonElement? element, string propName)

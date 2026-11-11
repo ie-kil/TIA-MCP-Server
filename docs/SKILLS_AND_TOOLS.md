@@ -385,14 +385,14 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
   - `target_name` *(string, optional)*: Target HMI software.
 
 #### 30. `hmi_set_tag_dynamization`
-- **Description:** Configure tag dynamization on an item property (such as `BackColor` range dynamization).
+- **Description:** Configure tag dynamization on an item property using numeric ranges or Boolean `Singlebit` mapping.
 - **Input Parameters:**
   - `screen_name` *(string, required)*: Screen name.
   - `item_name` *(string, required)*: Item name.
   - `property_name` *(string, required)*: Property to dynamize (`"BackColor"`, `"Visible"`).
   - `tag_name` *(string, required)*: HMI tag name.
-  - `condition_type` *(string, optional, default: "None")*: `"None"` or `"Range"`.
-  - `ranges` *(array of objects, optional)*: List of `{ "from": 0, "to": 0, "value": "gray" }`.
+  - `condition_type` *(string, optional, default: "None")*: `"None"`, `"Range"`, or `"Singlebit"`.
+  - `ranges` *(array of objects, optional)*: For `"Range"`, numeric lower/upper bounds; for `"Singlebit"`, exactly one `0..0` and one `1..1` entry whose values map the off/on states.
   - `target_name` *(string, optional)*: Target HMI software.
 - **Sample Invocation:**
   ```json

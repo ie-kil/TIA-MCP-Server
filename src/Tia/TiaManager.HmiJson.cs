@@ -1617,10 +1617,13 @@ namespace TiaOpennessMcp.Tia
                 typeof(ConditionType), document.ConditionType, "mapping condition type");
             bool hasBitmaskEntries = document.Entries.Any(entry => entry.Type == "Bitmask");
             if (hasBitmaskEntries &&
-                (conditionType != ConditionType.Bitmask || document.Entries.Any(entry => entry.Type != "Bitmask")))
-                throw new InvalidDataException("Bitmask mapping entries require a Bitmask condition type and cannot be mixed with other entry types.");
+                ((conditionType != ConditionType.Bitmask && conditionType != ConditionType.Singlebit) ||
+                 document.Entries.Any(entry => entry.Type != "Bitmask")))
+                throw new InvalidDataException("Bitmask mapping entries require a Bitmask or Singlebit condition type and cannot be mixed with other entry types.");
             if (conditionType == ConditionType.Bitmask && document.Entries.Count > 0 && !hasBitmaskEntries)
                 throw new InvalidDataException("Bitmask condition type requires bitmask mapping entries.");
+            if (conditionType == ConditionType.Singlebit && document.Entries.Count > 0 && !hasBitmaskEntries)
+                throw new InvalidDataException("Singlebit condition type requires bitmask mapping entries.");
             BitDynamizationType? bitDynamizationType = null;
             foreach (HmiJsonMappingEntry entry in document.Entries)
             {
@@ -1652,6 +1655,9 @@ namespace TiaOpennessMcp.Tia
                 ReadMappingValue(entry.Value);
                 ReadMappingValue(entry.AlternateValue);
             }
+            if (conditionType == ConditionType.Singlebit &&
+                bitDynamizationType.HasValue && bitDynamizationType.Value != BitDynamizationType.SingleBit)
+                throw new InvalidDataException("Singlebit condition type requires SingleBit mapping entries.");
         }
 
         private static void ApplyValueConverter(ValueConverter converter, HmiJsonValueConverter document)

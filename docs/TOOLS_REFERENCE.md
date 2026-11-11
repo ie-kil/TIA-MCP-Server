@@ -533,7 +533,7 @@
 ---
 
 ### 31. `hmi_set_tag_dynamization`
-- **Description:** Binds a screen item property (e.g. `BackColor`, `Visible`) to an HMI tag using `ConditionType.Range`.
+- **Description:** Binds a screen item property (e.g. `BackColor`, `Visible`) to an HMI tag using `ConditionType.Range` or `ConditionType.Singlebit`.
 - **Parameters:**
   | Parameter | Type | Required | Default | Description |
   | :--- | :---: | :---: | :---: | :--- |
@@ -541,8 +541,8 @@
   | `item_name` | string | **Yes** | — | Target screen item name. |
   | `property_name` | string | **Yes** | — | Property to dynamize (`"BackColor"`). |
   | `tag_name` | string | **Yes** | — | HMI tag name. |
-  | `condition_type` | string | No | `"None"` | `"None"` or `"Range"`. |
-  | `ranges` | array | No | null | List of `{ "from": 0, "to": 0, "value": "gray" }`. |
+  | `condition_type` | string | No | `"None"` | `"None"`, `"Range"`, or `"Singlebit"`. |
+  | `ranges` | array | No | null | For `Range`, provide numeric bounds. For `Singlebit`, provide exactly one `0..0` and one `1..1` entry; values map the off/on states. |
   | `target_name` | string | No | null | Target HMI software. |
 - **Sample Invocation:**
   ```json

@@ -293,6 +293,16 @@ namespace TiaOpennessMcp.Tia
                                         Value = re.Value?.ToString() ?? ""
                                     });
                                 }
+                                else if (entry is MappingTableEntryBitmask bitmask)
+                                {
+                                    dynInfo.BitmaskEntries.Add(new BitmaskEntryDto
+                                    {
+                                        BitDynamizationType = bitmask.BitDynamizationType.ToString(),
+                                        Condition = bitmask.Condition,
+                                        Relevant = bitmask.Relevant,
+                                        Value = bitmask.Value?.ToString() ?? ""
+                                    });
+                                }
                             }
                         }
                     }
@@ -569,9 +579,44 @@ namespace TiaOpennessMcp.Tia
             string propertyName,
             string tagName,
             string conditionType = "None",
-            List<RangeEntryDto>? ranges = null,
+            List<HmiRangeEntryInput>? ranges = null,
             string? targetName = null)
         {
+            bool isRange = conditionType.Equals("Range", StringComparison.OrdinalIgnoreCase);
+            bool isSingleBit = conditionType.Equals("Singlebit", StringComparison.OrdinalIgnoreCase);
+            if (!isRange && !isSingleBit && !conditionType.Equals("None", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException($"Unsupported dynamization condition type '{conditionType}'. Use 'None', 'Range', or 'Singlebit'.", nameof(conditionType));
+            if (isRange && (ranges == null || ranges.Count == 0))
+                throw new ArgumentException("Range dynamization requires at least one range entry.", nameof(ranges));
+
+            HmiRangeEntryInput? stateZero = null;
+            HmiRangeEntryInput? stateOne = null;
+            if (isSingleBit)
+            {
+                if (ranges == null || ranges.Count != 2)
+                    throw new ArgumentException("Singlebit dynamization requires exactly two entries: one for state 0 and one for state 1.", nameof(ranges));
+
+                foreach (HmiRangeEntryInput range in ranges)
+                {
+                    int state = GetSingleBitState(range);
+                    if (state == 0)
+                    {
+                        if (stateZero != null)
+                            throw new ArgumentException("Singlebit dynamization must have exactly one state 0 entry.", nameof(ranges));
+                        stateZero = range;
+                    }
+                    else
+                    {
+                        if (stateOne != null)
+                            throw new ArgumentException("Singlebit dynamization must have exactly one state 1 entry.", nameof(ranges));
+                        stateOne = range;
+                    }
+                }
+
+                if (stateZero == null || stateOne == null)
+                    throw new ArgumentException("Singlebit dynamization requires one entry for state 0 and one for state 1.", nameof(ranges));
+            }
+
             var hmiSw = FindHmiSoftware(targetName);
             var screen = FindHmiScreen(hmiSw, screenName);
             if (screen == null) throw new InvalidOperationException($"Screen '{screenName}' not found.");
@@ -583,32 +628,64 @@ namespace TiaOpennessMcp.Tia
                        ?? item.Dynamizations.Create<TagDynamization>(propertyName);
             tDyn.Tag = tagName;
 
-            if (conditionType.Equals("Range", StringComparison.OrdinalIgnoreCase) && ranges != null && ranges.Count > 0)
+            if (isRange || isSingleBit)
             {
-                tDyn.ValueConverter.MappingTable.ConditionType = ConditionType.Range;
-                while (tDyn.ValueConverter.MappingTable.Entries.Count > 0)
+                var mappingTable = tDyn.ValueConverter.MappingTable;
+                while (mappingTable.Entries.Count > 0)
                 {
-                    tDyn.ValueConverter.MappingTable.Entries[0].Delete();
+                    mappingTable.Entries[0].Delete();
                 }
 
-                foreach (var r in ranges)
+                if (isRange)
                 {
-                    var entry = tDyn.ValueConverter.MappingTable.Entries.Create<MappingTableEntryRange>();
-                    entry.From = r.From;
-                    entry.To = r.To;
-                    if (propertyName.EndsWith("Color", StringComparison.OrdinalIgnoreCase))
+                    mappingTable.ConditionType = ConditionType.Range;
+                    foreach (HmiRangeEntryInput range in ranges!)
                     {
-                        var col = ParseColor(r.Value) ?? Color.White;
-                        entry.Value = col;
-                    }
-                    else
-                    {
-                        entry.Value = r.Value;
+                        var entry = mappingTable.Entries.Create<MappingTableEntryRange>();
+                        entry.From = range.From;
+                        entry.To = range.To;
+                        entry.Value = GetDynamizationValue(propertyName, range.Value);
                     }
                 }
+                else
+                {
+                    mappingTable.ConditionType = ConditionType.Singlebit;
+                    var entries = mappingTable.Entries.Create(BitDynamizationType.SingleBit);
+                    if (entries.Count != 2)
+                        throw new InvalidOperationException($"TIA created {entries.Count} entries for Singlebit dynamization; expected 2.");
+
+                    MappingTableEntryBitmask zeroEntry = entries.SingleOrDefault(entry => entry.Condition == 0)
+                        ?? throw new InvalidOperationException("TIA did not create the state 0 entry for Singlebit dynamization.");
+                    MappingTableEntryBitmask oneEntry = entries.SingleOrDefault(entry => entry.Condition != 0)
+                        ?? throw new InvalidOperationException("TIA did not create the state 1 entry for Singlebit dynamization.");
+                    zeroEntry.Value = GetDynamizationValue(propertyName, stateZero!.Value);
+                    oneEntry.Value = GetDynamizationValue(propertyName, stateOne!.Value);
+                }
+
+                ConditionType expectedCondition = isRange ? ConditionType.Range : ConditionType.Singlebit;
+                int expectedEntryCount = isRange ? ranges!.Count : 2;
+                if (mappingTable.ConditionType != expectedCondition || mappingTable.Entries.Count != expectedEntryCount)
+                    throw new InvalidOperationException(
+                        $"TIA did not apply the requested {expectedCondition} mapping to '{itemName}.{propertyName}'.");
             }
 
             return $"Dynamization on '{itemName}.{propertyName}' linked to '{tagName}' successfully.";
+        }
+
+        private static int GetSingleBitState(HmiRangeEntryInput range)
+        {
+            double from = Convert.ToDouble(range.From, CultureInfo.InvariantCulture);
+            double to = Convert.ToDouble(range.To, CultureInfo.InvariantCulture);
+            if (from != to || (from != 0 && from != 1))
+                throw new ArgumentException("Singlebit entries must use matching from/to bounds of 0 or 1.");
+            return (int)from;
+        }
+
+        private static object GetDynamizationValue(string propertyName, string value)
+        {
+            if (propertyName.EndsWith("Color", StringComparison.OrdinalIgnoreCase))
+                return ParseColor(value) ?? Color.White;
+            return value;
         }
 
         public string UpdateDynamizationEntry(
@@ -1928,12 +2005,28 @@ namespace TiaOpennessMcp.Tia
         public string TagName { get; set; } = "";
         public string ConditionType { get; set; } = "";
         public List<RangeEntryDto> Ranges { get; } = new List<RangeEntryDto>();
+        public List<BitmaskEntryDto> BitmaskEntries { get; } = new List<BitmaskEntryDto>();
+    }
+
+    public class BitmaskEntryDto
+    {
+        public string BitDynamizationType { get; set; } = "";
+        public ulong Condition { get; set; }
+        public ulong Relevant { get; set; }
+        public string Value { get; set; } = "";
     }
 
     public class RangeEntryDto
     {
         public double From { get; set; }
         public double To { get; set; }
+        public string Value { get; set; } = "";
+    }
+
+    public class HmiRangeEntryInput
+    {
+        public object From { get; set; } = 0;
+        public object To { get; set; } = 0;
         public string Value { get; set; } = "";
     }
 

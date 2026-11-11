@@ -118,6 +118,15 @@ class HmiJsonTests
         Check(Json(bitmaskEntry).Contains("\"Condition\":18446744073709551615") &&
             Json(bitmaskEntry).Contains("\"Relevant\":18446744073709551615"),
             "bitmask unsigned 64-bit values retain full precision");
+        Set(bitmaskEntry, "BitDynamizationType", "SingleBit");
+        Set(bitmaskConverter, "ConditionType", "Singlebit");
+        Invoke("ValidateValueConverter", bitmaskConverter);
+        Check(true, "Singlebit condition accepts SingleBit mapping entries");
+        Set(bitmaskEntry, "BitDynamizationType", "MultiBit");
+        Reject(() => Invoke("ValidateValueConverter", bitmaskConverter),
+            "Singlebit condition rejects MultiBit mapping entries");
+        Set(bitmaskEntry, "BitDynamizationType", "SingleBit");
+        Set(bitmaskConverter, "ConditionType", "Bitmask");
         object simpleEntry = Document("HmiJsonMappingEntry");
         Set(simpleEntry, "Type", "Simple");
         Set(simpleEntry, "Condition", JsonSerializer.SerializeToElement("=="));
@@ -191,10 +200,10 @@ class HmiJsonTests
                 HmiScreen temporary = hmi.Screens.Create(name);
                 var bitmaskSource = temporary.ScreenItems.Create<HmiButton>("__BitmaskSource");
                 var bitmaskDynamization = bitmaskSource.Dynamizations.Create<ExpressionDynamization>("BackColor");
-                bitmaskDynamization.ValueConverter.MappingTable.ConditionType = ConditionType.Bitmask;
+                bitmaskDynamization.ValueConverter.MappingTable.ConditionType = ConditionType.Singlebit;
                 var generatedBitmasks = bitmaskDynamization.ValueConverter.MappingTable.Entries
                     .Create(BitDynamizationType.SingleBit);
-                Check(generatedBitmasks.Count > 0, "TIA creates bitmask entries through its bitmask factory");
+                Check(generatedBitmasks.Count == 2, "TIA creates off/on entries for Singlebit dynamization");
                 object bitmaskDocument = Invoke("CreateDynamizationDocument", bitmaskDynamization);
                 var bitmaskTarget = temporary.ScreenItems.Create<HmiButton>("__BitmaskTarget");
                 var bitmaskDynamizations = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(
