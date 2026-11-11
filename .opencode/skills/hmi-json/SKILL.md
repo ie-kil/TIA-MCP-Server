@@ -172,6 +172,20 @@ Conventions:
    dynamization/mapping kinds fail explicitly. Legacy `ExpressionDynamization`
    placeholders lack converter data: re-export rather than attempting to import them.
 
+## Singlebit setter and tool availability
+
+- `hmi_set_tag_dynamization` with `condition_type: "Singlebit"` sets or replaces the
+  mapping table; it is not a one-entry editor. Use `hmi_update_dynamization_entry` for
+  a targeted update to an existing row.
+- TIA may generate Singlebit entries when the condition type is assigned, even if an
+  initial Openness collection read appears empty. If a setter call fails, assume the
+  in-memory object may have been partially changed: inspect it before retrying. Do not
+  blindly call the setter again or use `condition_type: "None"` as a reset; that path
+  does not explicitly clear an existing converter.
+- If a tool documented here is missing from the live MCP tool list, refresh or reconnect
+  the client and verify its configured server endpoint before concluding the tool is
+  unavailable. Do not substitute a whole-mapping setter for an in-place entry update.
+
 ## In-place dynamization entry updates
 
 Use `hmi_update_dynamization_entry` when changing values or flashing settings on one
