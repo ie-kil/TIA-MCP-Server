@@ -15,7 +15,7 @@
 | **1** | [Connection & Session Management](#category-1-connection--session-management-8-tools) | 8 | `tia_get_status`, `tia_list_processes`, `tia_connect`, `tia_disconnect`, `tia_get_project_info`, `tia_open_project`, `tia_save_project`, `tia_close_project` |
 | **2** | [Hardware & Device Topology](#category-2-hardware--device-topology-2-tools) | 2 | `tia_list_devices`, `tia_get_device_tree` |
 | **3** | [PLC Software, Blocks & Compilation](#category-3-plc-software-blocks--compilation-9-tools) | 9 | `tia_list_plcs`, `tia_list_blocks`, `tia_get_block_code`, `tia_import_block`, `tia_delete_block`, `tia_list_plc_types`, `tia_get_plc_type`, `tia_import_plc_type`, `tia_compile` |
-| **4** | [WinCC Unified HMI Engineering](#category-4-wincc-unified-hmi-screen--widget-engineering-38-tools) | 38 | `hmi_list_targets`, `hmi_list_screens`, `hmi_create_screen`, `hmi_delete_screen`, `hmi_get_screen_items`, `hmi_delete_screen_items`, `hmi_add_label`, `hmi_add_button`, `hmi_add_toggle_switch`, `hmi_add_shape`, `hmi_add_io_field`, `hmi_set_tag_dynamization`, `hmi_update_button_scripts`, `hmi_list_tag_tables`, `hmi_list_tags`, `hmi_create_tag`, `hmi_create_discrete_alarm`, `hmi_update_tag_acquisition_cycles`, `hmi_set_tag_range`, `hmi_create_data_log`, `hmi_assign_logging_tags`, `hmi_list_connections`, `hmi_create_connection`, `hmi_delete_connection`, `hmi_list_text_lists`, `hmi_create_text_list`, `hmi_delete_text_list`, `hmi_export_text_lists`, `hmi_compile`, `tia_list_tag_tables`, `tia_get_tags`, `hmi_export_json`, `hmi_read_export_file`, `hmi_begin_import`, `hmi_upload_import_file`, `hmi_import_json`, `hmi_patch_json`, `hmi_render_json` |
+| **4** | [WinCC Unified HMI Engineering](#category-4-wincc-unified-hmi-screen--widget-engineering-39-tools) | 39 | `hmi_list_targets`, `hmi_list_screens`, `hmi_create_screen`, `hmi_delete_screen`, `hmi_get_screen_items`, `hmi_delete_screen_items`, `hmi_add_label`, `hmi_add_button`, `hmi_add_toggle_switch`, `hmi_add_shape`, `hmi_add_io_field`, `hmi_set_tag_dynamization`, `hmi_update_dynamization_entry`, `hmi_update_button_scripts`, `hmi_list_tag_tables`, `hmi_list_tags`, `hmi_create_tag`, `hmi_create_discrete_alarm`, `hmi_update_tag_acquisition_cycles`, `hmi_set_tag_range`, `hmi_create_data_log`, `hmi_assign_logging_tags`, `hmi_list_connections`, `hmi_create_connection`, `hmi_delete_connection`, `hmi_list_text_lists`, `hmi_create_text_list`, `hmi_delete_text_list`, `hmi_export_text_lists`, `hmi_compile`, `tia_list_tag_tables`, `tia_get_tags`, `hmi_export_json`, `hmi_read_export_file`, `hmi_begin_import`, `hmi_upload_import_file`, `hmi_import_json`, `hmi_patch_json`, `hmi_render_json` |
 | **5** | [Siemens TestSuite Automation](#category-5-siemens-testsuite-automation-2-tools) | 2 | `tia_testsuite_list_tests`, `tia_testsuite_load_test` |
 | **6** | [S7-PLCSIM Advanced Live Simulation & Testing](#category-6-s7-plcsim-advanced-live-simulation--testing-12-tools) | 12 | `plcsim_list_instances`, `plcsim_connect`, `plcsim_disconnect`, `plcsim_get_status`, `plcsim_set_operating_state`, `plcsim_set_scale_factor`, `plcsim_read_tag`, `plcsim_write_tag`, `plcsim_read_tags`, `plcsim_write_tags`, `plcsim_run_sequence`, `plcsim_run_mixing_sequence` |
 
@@ -344,7 +344,7 @@
 
 ---
 
-## Category 4: WinCC Unified HMI Screen & Widget Engineering (38 Tools)
+## Category 4: WinCC Unified HMI Screen & Widget Engineering (39 Tools)
 
 ### 20. `hmi_list_targets`
 - **Description:** Enumerates all WinCC Unified runtime devices and software containers.
@@ -556,6 +556,32 @@
       { "from": 0, "to": 0, "value": "gray" },
       { "from": 1, "to": 1, "value": "green" }
     ]
+  }
+  ```
+
+### `hmi_update_dynamization_entry`
+- **Description:** Updates selected values or flashing settings on one existing mapping-table entry in a tag or expression dynamization. Entry indices are zero-based and preserve all other entries and conditions.
+- **Parameters:**
+  | Parameter | Type | Required | Default | Description |
+  | :--- | :---: | :---: | :---: | :--- |
+  | `screen_name` | string | **Yes** | — | Target screen. |
+  | `item_name` | string | **Yes** | — | Target screen item name. |
+  | `property_name` | string | **Yes** | — | Dynamized property, such as `BackColor`. |
+  | `entry_index` | integer | **Yes** | — | Zero-based mapping-table entry index. |
+  | `new_value` | object | No | — | Optional `{ "type": "Color", "value": "#E80000" }` replacement for the entry's primary value. |
+  | `new_alternate_value` | object | No | — | Optional typed replacement for the alternate value, using the same `{ "type": "...", "value": "..." }` shape. |
+  | `new_flashing` | boolean | No | — | Optional flashing enable state. |
+  | `new_flashing_rate` | string | No | — | Optional TIA flashing rate enum name. |
+  | `target_name` | string | No | null | Target HMI software. |
+- Mapping value types use the exported CLR names: `String`, `Boolean`, `Color`, `Byte`, `Int16`, `UInt16`, `Int32`, `UInt32`, `Int64`, `UInt64`, `Single`, `Double`, or `Decimal`. The supplied type must match the existing entry value type.
+- **Sample Invocation:**
+  ```json
+  {
+    "screen_name": "Main_UnitControlSideBar",
+    "item_name": "UCS_Ind_Alarm",
+    "property_name": "BackColor",
+    "entry_index": 1,
+    "new_value": { "type": "Color", "value": "#E80000" }
   }
   ```
 

@@ -611,6 +611,105 @@ namespace TiaOpennessMcp.Tia
             return $"Dynamization on '{itemName}.{propertyName}' linked to '{tagName}' successfully.";
         }
 
+        public string UpdateDynamizationEntry(
+            string screenName,
+            string itemName,
+            string propertyName,
+            int entryIndex,
+            HmiMappingValueInput? newValue = null,
+            HmiMappingValueInput? newAlternateValue = null,
+            bool? newFlashing = null,
+            string? newFlashingRate = null,
+            string? targetName = null)
+        {
+            var hmiSw = FindHmiSoftware(targetName);
+            var screen = FindHmiScreen(hmiSw, screenName);
+            if (screen == null) throw new InvalidOperationException($"Screen '{screenName}' not found.");
+
+            var item = screen.ScreenItems.Find(itemName);
+            if (item == null) throw new InvalidOperationException($"Item '{itemName}' not found on screen '{screenName}'.");
+
+            var dynamization = item.Dynamizations.Find(propertyName);
+            ValueConverter converter;
+            if (dynamization is TagDynamization tagDynamization)
+                converter = tagDynamization.ValueConverter;
+            else if (dynamization is ExpressionDynamization expressionDynamization)
+                converter = expressionDynamization.ValueConverter;
+            else
+                throw new InvalidOperationException(
+                    $"A tag or expression dynamization for '{itemName}.{propertyName}' was not found.");
+
+            var entries = converter.MappingTable.Entries;
+            if (entryIndex < 0 || entryIndex >= entries.Count)
+                throw new ArgumentOutOfRangeException(nameof(entryIndex),
+                    $"Entry index must be between 0 and {entries.Count - 1}.");
+            if (newValue == null && newAlternateValue == null &&
+                !newFlashing.HasValue && newFlashingRate == null)
+                throw new ArgumentException("At least one mapping entry value or flashing property must be provided.");
+
+            MappingTableEntryBase entry = entries[entryIndex];
+            object? value = newValue == null
+                ? null
+                : ParseDynamizationMappingValue(newValue, entry.Value?.GetType(), "new_value");
+            Type? alternateValueType = entry.AlternateValue?.GetType() ?? entry.Value?.GetType();
+            object? alternateValue = newAlternateValue == null
+                ? null
+                : ParseDynamizationMappingValue(newAlternateValue, alternateValueType, "new_alternate_value");
+            Siemens.Engineering.HmiUnified.UI.Dynamization.Flashing.FlashingRate? flashingRate =
+                newFlashingRate == null
+                    ? (Siemens.Engineering.HmiUnified.UI.Dynamization.Flashing.FlashingRate?)null
+                    : (Siemens.Engineering.HmiUnified.UI.Dynamization.Flashing.FlashingRate)ParseEnumValue(
+                        typeof(Siemens.Engineering.HmiUnified.UI.Dynamization.Flashing.FlashingRate),
+                        newFlashingRate,
+                        "new_flashing_rate");
+
+            if (newValue != null) entry.Value = value;
+            if (newAlternateValue != null) entry.AlternateValue = alternateValue;
+            if (newFlashing.HasValue) entry.Flashing = newFlashing.Value;
+            if (flashingRate.HasValue) entry.FlashingRate = flashingRate.Value;
+
+            return $"Updated mapping entry {entryIndex} on '{itemName}.{propertyName}'.";
+        }
+
+        private static object ParseDynamizationMappingValue(
+            HmiMappingValueInput input,
+            Type? expectedType,
+            string propertyName)
+        {
+            object value;
+            switch (input.Type)
+            {
+                case "String": value = input.Value; break;
+                case "Boolean":
+                    if (!bool.TryParse(input.Value, out bool booleanValue))
+                        throw new InvalidDataException($"'{propertyName}' must be 'true' or 'false' for Boolean values.");
+                    value = booleanValue;
+                    break;
+                case "Color": value = ParseJsonColor(input.Value, propertyName); break;
+                case "Byte": value = byte.Parse(input.Value, NumberStyles.Integer, CultureInfo.InvariantCulture); break;
+                case "Int16": value = short.Parse(input.Value, NumberStyles.Integer, CultureInfo.InvariantCulture); break;
+                case "UInt16": value = ushort.Parse(input.Value, NumberStyles.Integer, CultureInfo.InvariantCulture); break;
+                case "Int32": value = int.Parse(input.Value, NumberStyles.Integer, CultureInfo.InvariantCulture); break;
+                case "UInt32": value = uint.Parse(input.Value, NumberStyles.Integer, CultureInfo.InvariantCulture); break;
+                case "Int64": value = long.Parse(input.Value, NumberStyles.Integer, CultureInfo.InvariantCulture); break;
+                case "UInt64": value = ulong.Parse(input.Value, NumberStyles.Integer, CultureInfo.InvariantCulture); break;
+                case "Single": value = float.Parse(input.Value, NumberStyles.Float, CultureInfo.InvariantCulture); break;
+                case "Double": value = double.Parse(input.Value, NumberStyles.Float, CultureInfo.InvariantCulture); break;
+                case "Decimal": value = decimal.Parse(input.Value, NumberStyles.Number, CultureInfo.InvariantCulture); break;
+                default:
+                    throw new InvalidDataException(
+                        $"Unsupported mapping value type '{input.Type}' for '{propertyName}'.");
+            }
+
+            if (expectedType == null)
+                throw new InvalidOperationException(
+                    $"Cannot infer the existing CLR value type for '{propertyName}'.");
+            if (value.GetType() != expectedType)
+                throw new InvalidDataException(
+                    $"'{propertyName}' has type '{expectedType.Name}', but the supplied value has type '{value.GetType().Name}'.");
+            return value;
+        }
+
         public ScriptUpdateSummary UpdateHmiButtonScripts(
             string screenName,
             string? findText = null,
@@ -1835,6 +1934,12 @@ namespace TiaOpennessMcp.Tia
     {
         public double From { get; set; }
         public double To { get; set; }
+        public string Value { get; set; } = "";
+    }
+
+    public class HmiMappingValueInput
+    {
+        public string Type { get; set; } = "";
         public string Value { get; set; } = "";
     }
 

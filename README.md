@@ -116,11 +116,12 @@ flowchart TD
 - **Data Types & Tags**: Author User Data Types (`tia_list_plc_types`, `tia_import_plc_type`) and manage tag tables (`tia_list_tag_tables`, `tia_get_tags`).
 - **Native Diagnostics**: Compile software containers via `ICompilable` and return exact error messages, line numbers, and warnings (`tia_compile`).
 
-### 2. WinCC Unified HMI Engineering (35 Tools)
+### 2. WinCC Unified HMI Engineering (36 Tools)
 - **Screen Management**: Create and delete Unified screens, and list or target screens recursively through nested screen groups (`hmi_list_screens`, `hmi_create_screen`, `hmi_delete_screen`).
 - **Widgets & UI Elements**: Programmatically position labels with HTML typography (`hmi_add_label`), pushbuttons (`hmi_add_button`), tag-bound toggle switches (`hmi_add_toggle_switch`), geometric shapes (`hmi_add_shape`), and process I/O fields (`hmi_add_io_field`).
 - **Discrete Alarms**: Create or update discrete alarms with validated trigger tags, alarm classes, trigger modes, and multilingual event text (`hmi_create_discrete_alarm`).
 - **Range Dynamization**: Dynamize properties (e.g. `BackColor`, font color) to integer/real tags using `ConditionType.Range` (`hmi_set_tag_dynamization`).
+- **Mapping Entry Updates**: Update an existing tag or expression dynamization entry's value, alternate value, or flashing settings in place (`hmi_update_dynamization_entry`).
 - **In-Place Script Updates**: Safely update button JavaScript handlers in-place without deleting or disrupting layout coordinates (`hmi_update_button_scripts`).
 - **JSON-Based HMI Engineering**: Export, import, and patch screens, tags, and discrete alarms using versioned `tia-mcp-hmi/1` JSON files (`hmi_export_json`, `hmi_read_export_file`, `hmi_begin_import`, `hmi_upload_import_file`, `hmi_import_json`, `hmi_patch_json`). Remote clients can transfer files through bounded Base64 chunks. Imports are transactional, verified, compiled, and never save the project.
 - **Communication & Text Lists**: Create device-level text lists (`hmi_create_text_list`), export text lists (`hmi_export_text_lists`), and establish HMI-to-PLC communication links (`hmi_create_connection`).
@@ -356,46 +357,47 @@ stateDiagram-v2
 | 29 | `hmi_add_shape` | HMI Widget | `screen_name`, `type`, `width`, `height` | Add rectangle or circle with border and fill styling. |
 | 30 | `hmi_add_io_field` | HMI Widget | `screen_name`, `name`, `process_value_tag` | Add numeric/string Input-Output field bound to tag. |
 | 31 | `hmi_set_tag_dynamization`| HMI Logic | `screen_name`, `item_name`, `ranges` | Bind property (e.g. `BackColor`) to tag using Range entries. |
-| 32 | `hmi_update_button_scripts`| HMI Logic | `screen_name`, `button_name`, `script` | Update existing button scripts **in-place** with JS validation. |
-| 33 | `hmi_list_tag_tables` | HMI Tags | `target_name` (opt) | List HMI tag tables. |
-| 34 | `hmi_list_tags` | HMI Tags | `table_name` | List HMI tags with data types and connection bindings. |
-| 35 | `hmi_create_tag` | HMI Tags | `table_name`, `tag_name`, `connection` | Create HMI tag mapped to PLC address. |
-| 36 | `hmi_create_discrete_alarm` | HMI Alarms | `alarm_name`, `alarm_class`, `raised_state_tag`, `text` | Create a discrete alarm from an existing HMI trigger tag. |
-| 37 | `hmi_update_tag_acquisition_cycles` | HMI Tags | `tags` | Configure acquisition cycle rate (e.g. 100ms, 1s). |
-| 38 | `hmi_set_tag_range` | HMI Tags | `table_name`, `tag_name`, `min`, `max` | Configure linear limits and scaling. |
-| 39 | `hmi_create_data_log` | HMI Logging | `log_name`, `max_size_mb` | Create historical circular data log. |
-| 40 | `hmi_assign_logging_tags` | HMI Logging | `log_name`, `tag_names` | Assign process tags to historical archive. |
-| 41 | `hmi_list_connections` | HMI Comm | `device_name` (opt) | Enumerate all configured HMI communication links. |
-| 42 | `hmi_create_connection` | HMI Comm | `connection_name`, `plc_device_name` | Create a communication link between HMI and PLC. |
-| 43 | `hmi_delete_connection` | HMI Comm | `connection_name` | Remove an HMI communication link. |
-| 44 | `hmi_list_text_lists` | HMI Text | `device_name` (opt) | Enumerate all text and graphic lists. |
-| 45 | `hmi_create_text_list` | HMI Text | `name`, `list_type`, `entries` | Create value or range text list (e.g. status decoders). |
-| 46 | `hmi_delete_text_list` | HMI Text | `name` | Remove a text list. |
-| 47 | `hmi_export_text_lists` | HMI Text | `destination_folder`, `base_filename`| Export text lists to `.hmi.yml` files. |
-| 48 | `hmi_compile` | Compilation | `target_name` | Compile WinCC Unified runtime with diagnostics. |
-| 49 | `tia_list_tag_tables` | PLC Tags | `plc_name` | List PLC tag tables. |
-| 50 | `tia_get_tags` | PLC Tags | `table_name`, `plc_name` | Read PLC tags with `%I`, `%Q`, `%M` addresses. |
-| 51 | `hmi_export_json` | HMI JSON | `output_directory` (optional), `compact`, `script_files`, `target_name` | Export versioned, hashed JSON files; omit destination for remote transfer. |
+| 32 | `hmi_update_dynamization_entry` | HMI Logic | `screen_name`, `item_name`, `property_name`, `entry_index` | Update selected mapping-entry values or flashing settings in place. |
+| 33 | `hmi_update_button_scripts`| HMI Logic | `screen_name`, `button_name`, `script` | Update existing button scripts **in-place** with JS validation. |
+| 34 | `hmi_list_tag_tables` | HMI Tags | `target_name` (opt) | List HMI tag tables. |
+| 35 | `hmi_list_tags` | HMI Tags | `table_name` | List HMI tags with data types and connection bindings. |
+| 36 | `hmi_create_tag` | HMI Tags | `table_name`, `tag_name`, `connection` | Create HMI tag mapped to PLC address. |
+| 37 | `hmi_create_discrete_alarm` | HMI Alarms | `alarm_name`, `alarm_class`, `raised_state_tag`, `text` | Create a discrete alarm from an existing HMI trigger tag. |
+| 38 | `hmi_update_tag_acquisition_cycles` | HMI Tags | `tags` | Configure acquisition cycle rate (e.g. 100ms, 1s). |
+| 39 | `hmi_set_tag_range` | HMI Tags | `table_name`, `tag_name`, `min`, `max` | Configure linear limits and scaling. |
+| 40 | `hmi_create_data_log` | HMI Logging | `log_name`, `max_size_mb` | Create historical circular data log. |
+| 41 | `hmi_assign_logging_tags` | HMI Logging | `log_name`, `tag_names` | Assign process tags to historical archive. |
+| 42 | `hmi_list_connections` | HMI Comm | `device_name` (opt) | Enumerate all configured HMI communication links. |
+| 43 | `hmi_create_connection` | HMI Comm | `connection_name`, `plc_device_name` | Create a communication link between HMI and PLC. |
+| 44 | `hmi_delete_connection` | HMI Comm | `connection_name` | Remove an HMI communication link. |
+| 45 | `hmi_list_text_lists` | HMI Text | `device_name` (opt) | Enumerate all text and graphic lists. |
+| 46 | `hmi_create_text_list` | HMI Text | `name`, `list_type`, `entries` | Create value or range text list (e.g. status decoders). |
+| 47 | `hmi_delete_text_list` | HMI Text | `name` | Remove a text list. |
+| 48 | `hmi_export_text_lists` | HMI Text | `destination_folder`, `base_filename`| Export text lists to `.hmi.yml` files. |
+| 49 | `hmi_compile` | Compilation | `target_name` | Compile WinCC Unified runtime with diagnostics. |
+| 50 | `tia_list_tag_tables` | PLC Tags | `plc_name` | List PLC tag tables. |
+| 51 | `tia_get_tags` | PLC Tags | `table_name`, `plc_name` | Read PLC tags with `%I`, `%Q`, `%M` addresses. |
+| 52 | `hmi_export_json` | HMI JSON | `output_directory` (optional), `compact`, `script_files`, `target_name` | Export versioned, hashed JSON files; omit destination for remote transfer. |
 | — | `hmi_read_export_file` | HMI JSON | `transfer_id`, `relative_path`, `offset`, `chunk_bytes` | Fetch a staged export file in bounded Base64 chunks. |
 | — | `hmi_begin_import` | HMI JSON | *(none)* | Create a staged remote HMI JSON import. |
 | — | `hmi_upload_import_file` | HMI JSON | `transfer_id`, `relative_path`, `content_base64`, `offset`, `total_bytes` | Upload a file in bounded sequential Base64 chunks. |
-| 52 | `hmi_import_json` | HMI JSON | `input_directory` or `transfer_id`, `prune_items`, `dry_run`, `verify_hashes`, `target_name` | Validate and transactionally import HMI JSON; compile without saving. |
-| 53 | `hmi_patch_json` | HMI JSON | `file_path`, `dry_run`, `target_name` | Apply a guarded JSON patch to Unified HMI objects. |
-| 54 | `tia_testsuite_list_tests`| TestSuite | `plc_name` | List configured Siemens TestSuite test cases. |
-| 55 | `tia_testsuite_load_test` | TestSuite | `file_path` | Import or reload `.tat` rule file with override. |
-| 56 | `plcsim_list_instances` | Simulation | *(none)* | List all registered S7-PLCSIM Advanced instances. |
-| 57 | `plcsim_connect` | Simulation | `instance_name` (default `"PLC_1"`) | Connect to S7-PLCSIM Advanced and cache symbolic tags. |
-| 58 | `plcsim_disconnect` | Simulation | *(none)* | Detach from active PLCSIM instance. |
-| 59 | `plcsim_get_status` | Simulation | *(none)* | Real-time status (Run/Stop, scale factor, tag counts). |
-| 60 | `plcsim_set_operating_state` | Simulation | `state` (`"Run"`, `"Stop"`, `"MemoryReset"`) | Switch virtual controller operating state. |
-| 61 | `plcsim_set_scale_factor` | Simulation | `scale_factor` (e.g. `2.0`) | Scale simulation clock to speed up execution. |
-| 62 | `plcsim_read_tag` | Live I/O | `tag_name` | Read live DB, I, Q, or M variable by symbolic name. |
-| 63 | `plcsim_write_tag` | Live I/O | `tag_name`, `value` | Write live value to variable in virtual PLC memory. |
-| 64 | `plcsim_read_tags` | Live I/O | `tag_names` | Bulk read multiple variables in a single call. |
-| 65 | `plcsim_write_tags` | Live I/O | `tags` (key-value object) | Bulk write multiple variables in a single call. |
-| 66 | `plcsim_run_sequence` | Verification | `start_command_tag`, `step_number_tag`, `done_tag`, ... | Universal automated sequence testing for any state machine. |
-| 67 | `plcsim_run_mixing_sequence`| Verification | Recipe parameters, `scale_factor` | Automated multi-parameter batch testing runner. |
-| 68 | `hmi_render_json` | HMI Preview | `input_directory`, `output_directory`, `screen_name`, `language`, `scale` | Offline PNGs, numbered overlays, and layout reports with nested screens. |
+| 53 | `hmi_import_json` | HMI JSON | `input_directory` or `transfer_id`, `prune_items`, `dry_run`, `verify_hashes`, `target_name` | Validate and transactionally import HMI JSON; compile without saving. |
+| 54 | `hmi_patch_json` | HMI JSON | `file_path`, `dry_run`, `target_name` | Apply a guarded JSON patch to Unified HMI objects. |
+| 55 | `tia_testsuite_list_tests`| TestSuite | `plc_name` | List configured Siemens TestSuite test cases. |
+| 56 | `tia_testsuite_load_test`| TestSuite | `file_path` | Import or reload `.tat` rule file with override. |
+| 57 | `plcsim_list_instances` | Simulation | *(none)* | List all registered S7-PLCSIM Advanced instances. |
+| 58 | `plcsim_connect` | Simulation | `instance_name` (default `"PLC_1"`) | Connect to S7-PLCSIM Advanced and cache symbolic tags. |
+| 59 | `plcsim_disconnect` | Simulation | *(none)* | Detach from active PLCSIM instance. |
+| 60 | `plcsim_get_status` | Simulation | *(none)* | Real-time status (Run/Stop, scale factor, tag counts). |
+| 61 | `plcsim_set_operating_state` | Simulation | `state` (`"Run"`, `"Stop"`, `"MemoryReset"`) | Switch virtual controller operating state. |
+| 62 | `plcsim_set_scale_factor` | Simulation | `scale_factor` (e.g. `2.0`) | Scale simulation clock to speed up execution. |
+| 63 | `plcsim_read_tag` | Live I/O | `tag_name` | Read live DB, I, Q, or M variable by symbolic name. |
+| 64 | `plcsim_write_tag` | Live I/O | `tag_name`, `value` | Write live value to variable in virtual PLC memory. |
+| 65 | `plcsim_read_tags` | Live I/O | `tag_names` | Bulk read multiple variables in a single call. |
+| 66 | `plcsim_write_tags` | Live I/O | `tags` (key-value object) | Bulk write multiple variables in a single call. |
+| 67 | `plcsim_run_sequence` | Verification | `start_command_tag`, `step_number_tag`, `done_tag`, ... | Universal automated sequence testing for any state machine. |
+| 68 | `plcsim_run_mixing_sequence`| Verification | Recipe parameters, `scale_factor` | Automated multi-parameter batch testing runner. |
+| 69 | `hmi_render_json` | HMI Preview | `input_directory`, `output_directory`, `screen_name`, `language`, `scale` | Offline PNGs, numbered overlays, and layout reports with nested screens. |
 
 ---
 

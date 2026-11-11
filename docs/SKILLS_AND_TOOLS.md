@@ -409,6 +409,16 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
   }
   ```
 
+#### `hmi_update_dynamization_entry`
+- **Description:** Update one existing tag or expression dynamization mapping entry in place.
+- **Input Parameters:**
+  - `screen_name`, `item_name`, `property_name` *(string, required)*: Identify the screen item and its dynamized property.
+  - `entry_index` *(integer, required)*: Zero-based mapping-table entry index.
+  - `new_value`, `new_alternate_value` *(object, optional)*: Typed value object, for example `{ "type": "Color", "value": "#E80000" }`. The supplied CLR type must match the existing entry value.
+  - `new_flashing` *(boolean, optional)*: Update the entry's flashing enable state.
+  - `new_flashing_rate` *(string, optional)*: TIA flashing rate enum name.
+  - `target_name` *(string, optional)*: Target HMI software.
+
 #### 31. `hmi_update_button_scripts`
 - **Description:** Modify button event scripts **in-place** without deleting items. Supports substring search/replace or unconditional script setting, running Openness JavaScript syntax checking.
 - **Input Parameters:**
@@ -703,4 +713,3 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
 | **Text Lists** | `hmi_list_text_lists` | Returns configured text lists | **PASSED** |
 | **TestSuite Lookup**| `tia_testsuite_list_tests` | Returns configured test cases | **PASSED** |
 | **HMI Compilation** | `hmi_compile` on Unified target | Returns `State: Success`, `Errors: 0` | **PASSED** |
-

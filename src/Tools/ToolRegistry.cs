@@ -906,6 +906,57 @@ namespace TiaOpennessMcp.Tools
                     return CallToolResult.Text(res);
                 });
 
+            // Update one existing converter entry without recreating the dynamization.
+            Register("hmi_update_dynamization_entry", "Update the value, alternate value, or flashing settings of one existing tag or expression dynamization mapping entry.",
+                schema =>
+                {
+                    schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Target screen." };
+                    schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Target screen item name." };
+                    schema.Properties["property_name"] = new ToolProperty { Type = "string", Description = "Dynamized property, such as BackColor." };
+                    schema.Properties["entry_index"] = new ToolProperty { Type = "integer", Description = "Zero-based index in the mapping table entries." };
+                    var mappingValueProperties = new Dictionary<string, ToolProperty>
+                    {
+                        ["type"] = new ToolProperty { Type = "string", Description = "CLR mapping value type (for example Color, String, Boolean, or Double)." },
+                        ["value"] = new ToolProperty { Type = "string", Description = "Value encoded as text; colors use #RRGGBB or #AARRGGBB." }
+                    };
+                    var mappingValueRequired = new List<string> { "type", "value" };
+                    schema.Properties["new_value"] = new ToolProperty
+                    {
+                        Type = "object",
+                        Description = "Optional typed replacement for the entry's primary value.",
+                        Properties = mappingValueProperties,
+                        Required = mappingValueRequired
+                    };
+                    schema.Properties["new_alternate_value"] = new ToolProperty
+                    {
+                        Type = "object",
+                        Description = "Optional typed replacement for the entry's alternate value.",
+                        Properties = mappingValueProperties,
+                        Required = mappingValueRequired
+                    };
+                    schema.Properties["new_flashing"] = new ToolProperty { Type = "boolean", Description = "Optional flashing enable state." };
+                    schema.Properties["new_flashing_rate"] = new ToolProperty { Type = "string", Description = "Optional TIA flashing rate enum name." };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software name (optional)." };
+                    schema.Required = new List<string> { "screen_name", "item_name", "property_name", "entry_index" };
+                },
+                args =>
+                {
+                    string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name required.");
+                    string item = GetStringProp(args, "item_name") ?? throw new ArgumentException("item_name required.");
+                    string property = GetStringProp(args, "property_name") ?? throw new ArgumentException("property_name required.");
+                    int entryIndex = GetIntProp(args, "entry_index") ?? throw new ArgumentException("entry_index must be an integer.");
+                    var newValue = GetMappingValueInputProp(args, "new_value");
+                    var newAlternateValue = GetMappingValueInputProp(args, "new_alternate_value");
+                    bool? newFlashing = GetNullableBoolProp(args, "new_flashing");
+                    string? newFlashingRate = GetStringProp(args, "new_flashing_rate");
+                    string? target = GetStringProp(args, "target_name");
+
+                    string result = TiaManager.Instance.UpdateDynamizationEntry(
+                        screen, item, property, entryIndex, newValue, newAlternateValue,
+                        newFlashing, newFlashingRate, target);
+                    return CallToolResult.Text(result);
+                });
+
             // 33. hmi_update_button_scripts
             Register("hmi_update_button_scripts", "Update button scripts in place on a screen matching text search/replace or list of button names without deleting items.",
                 schema =>
@@ -1599,6 +1650,33 @@ namespace TiaOpennessMcp.Tools
                 if (prop.ValueKind == JsonValueKind.False) return false;
             }
             return defaultValue;
+        }
+
+        private static bool? GetNullableBoolProp(JsonElement? element, string propName)
+        {
+            if (!element.HasValue || element.Value.ValueKind != JsonValueKind.Object ||
+                !element.Value.TryGetProperty(propName, out var prop))
+                return null;
+            if (prop.ValueKind == JsonValueKind.True) return true;
+            if (prop.ValueKind == JsonValueKind.False) return false;
+            throw new ArgumentException($"{propName} must be a boolean.");
+        }
+
+        private static HmiMappingValueInput? GetMappingValueInputProp(JsonElement? element, string propName)
+        {
+            if (!element.HasValue || element.Value.ValueKind != JsonValueKind.Object ||
+                !element.Value.TryGetProperty(propName, out var prop))
+                return null;
+            if (prop.ValueKind != JsonValueKind.Object ||
+                !prop.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.String ||
+                !prop.TryGetProperty("value", out var value) || value.ValueKind != JsonValueKind.String)
+                throw new ArgumentException($"{propName} must be an object with string 'type' and 'value' fields.");
+
+            return new HmiMappingValueInput
+            {
+                Type = type.GetString() ?? "",
+                Value = value.GetString() ?? ""
+            };
         }
 
         private static List<string>? GetStringListProp(JsonElement? element, string propName)
