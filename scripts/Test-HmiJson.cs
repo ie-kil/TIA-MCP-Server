@@ -228,15 +228,23 @@ class HmiJsonTests
                 if (existingTag != null)
                 {
                     var singlebitTarget = temporary.ScreenItems.Create<HmiButton>("__SinglebitTarget");
+                    singlebitTarget.Dynamizations.Create<TagDynamization>("BackColor");
                     manager.SetTagDynamization(name, singlebitTarget.Name, "BackColor", existingTag.Name,
                         "Singlebit", new List<HmiRangeEntryInput>
                         {
                             new HmiRangeEntryInput { From = 0, To = 0, Value = "#E2E5E8" },
                             new HmiRangeEntryInput { From = 1, To = 1, Value = "#E80000" }
                         }, target);
-                    var singlebitEntries = ((TagDynamization)singlebitTarget.Dynamizations.Find("BackColor"))
-                        .ValueConverter.MappingTable.Entries;
-                    Check(singlebitEntries.Count == 2, "direct Singlebit setter reuses TIA-generated entries");
+                    var singlebitTable = ((TagDynamization)singlebitTarget.Dynamizations.Find("BackColor"))
+                        .ValueConverter.MappingTable;
+                    var singlebitEntries = singlebitTable.Entries.OfType<MappingTableEntryBitmask>().ToList();
+                    Check(singlebitTable.ConditionType == ConditionType.Singlebit && singlebitEntries.Count == 2,
+                        "Singlebit setter reuses TIA-generated entries on an existing tag dynamization");
+                    Check(((Color)singlebitEntries.Single(entry => entry.Condition == 0).Value).ToArgb() ==
+                        Color.FromArgb(255, 226, 229, 232).ToArgb() &&
+                        ((Color)singlebitEntries.Single(entry => entry.Condition != 0).Value).ToArgb() ==
+                        Color.FromArgb(255, 232, 0, 0).ToArgb(),
+                        "Singlebit setter applies values to the generated off/on entries");
                 }
                 int index = 0;
                 foreach (var source in allItems)

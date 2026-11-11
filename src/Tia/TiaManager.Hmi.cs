@@ -652,7 +652,19 @@ namespace TiaOpennessMcp.Tia
                     mappingTable.ConditionType = ConditionType.Singlebit;
                     var entries = mappingTable.Entries.OfType<MappingTableEntryBitmask>().ToList();
                     if (mappingTable.Entries.Count == 0)
-                        entries = mappingTable.Entries.Create(BitDynamizationType.SingleBit).ToList();
+                    {
+                        try
+                        {
+                            entries = mappingTable.Entries.Create(BitDynamizationType.SingleBit).ToList();
+                        }
+                        catch (EngineeringTargetInvocationException)
+                        {
+                            // TIA may have generated the entries when ConditionType was assigned.
+                            entries = mappingTable.Entries.OfType<MappingTableEntryBitmask>().ToList();
+                            if (entries.Count == 0)
+                                throw;
+                        }
+                    }
                     if (mappingTable.Entries.Count != entries.Count)
                         throw new InvalidOperationException("TIA created unexpected non-bitmask entries for a Singlebit dynamization.");
                     if (entries.Count != 2)
