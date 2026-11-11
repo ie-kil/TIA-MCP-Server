@@ -167,6 +167,13 @@ class HmiJsonTests
         var arrayTags = new Dictionary<string, string> { { "Values", "Array [0..2] of Real" } };
         Check((bool)Invoke("ContainsTagReference", arrayTags, "Values[0]"), "array element reference");
         Check(!(bool)Invoke("ContainsTagReference", arrayTags, "Values[3]"), "out-of-range array reference rejected");
+        var memberTags = new Dictionary<string, string> { { "UnitParent_UnitData", "dtIECore_UnitData" } };
+        Check((bool)Invoke("ContainsTagReference", memberTags,
+            "UnitParent_UnitData.UnitStatus.Error"), "nested UDT member reference");
+        Check(!(bool)Invoke("ContainsTagReference", memberTags,
+            "Missing_UnitData.UnitStatus.Error"), "UDT member reference requires an existing root tag");
+        Check(!(bool)Invoke("ContainsTagReference", memberTags,
+            "UnitParent_UnitData.UnitStatus."), "malformed UDT member reference rejected");
         object first = Document("HmiJsonItem");
         object second = Document("HmiJsonItem");
         Set(first, "Type", "HmiFaceplateContainer");
@@ -202,7 +209,10 @@ class HmiJsonTests
                 var bitmaskDynamization = bitmaskSource.Dynamizations.Create<ExpressionDynamization>("BackColor");
                 bitmaskDynamization.ValueConverter.MappingTable.ConditionType = ConditionType.Singlebit;
                 var generatedBitmasks = bitmaskDynamization.ValueConverter.MappingTable.Entries
-                    .Create(BitDynamizationType.SingleBit);
+                    .OfType<MappingTableEntryBitmask>().ToList();
+                if (bitmaskDynamization.ValueConverter.MappingTable.Entries.Count == 0)
+                    generatedBitmasks = bitmaskDynamization.ValueConverter.MappingTable.Entries
+                        .Create(BitDynamizationType.SingleBit).ToList();
                 Check(generatedBitmasks.Count == 2, "TIA creates off/on entries for Singlebit dynamization");
                 object bitmaskDocument = Invoke("CreateDynamizationDocument", bitmaskDynamization);
                 var bitmaskTarget = temporary.ScreenItems.Create<HmiButton>("__BitmaskTarget");
@@ -214,6 +224,20 @@ class HmiJsonTests
                     bitmaskTarget.Dynamizations.Find("BackColor"));
                 Check(Json(bitmaskDocument) == Json(bitmaskReadBack),
                     "live bitmask converter API create and read-back");
+                var existingTag = hmi.Tags.FirstOrDefault();
+                if (existingTag != null)
+                {
+                    var singlebitTarget = temporary.ScreenItems.Create<HmiButton>("__SinglebitTarget");
+                    manager.SetTagDynamization(name, singlebitTarget.Name, "BackColor", existingTag.Name,
+                        "Singlebit", new List<HmiRangeEntryInput>
+                        {
+                            new HmiRangeEntryInput { From = 0, To = 0, Value = "#E2E5E8" },
+                            new HmiRangeEntryInput { From = 1, To = 1, Value = "#E80000" }
+                        }, target);
+                    var singlebitEntries = ((TagDynamization)singlebitTarget.Dynamizations.Find("BackColor"))
+                        .ValueConverter.MappingTable.Entries;
+                    Check(singlebitEntries.Count == 2, "direct Singlebit setter reuses TIA-generated entries");
+                }
                 int index = 0;
                 foreach (var source in allItems)
                 {

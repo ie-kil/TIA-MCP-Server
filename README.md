@@ -722,6 +722,8 @@ This repository includes 3 turnkey agent skills located in `.agents/skills/`:
 ### [v0.0.4] - 2026-11-10
 * Added lossless HMI JSON export/import for bitmask converter entries, including the TIA-generated relevant masks.
 * Updated the reported MCP server version and assembly metadata to v0.0.4.
+* Fixed HMI JSON validation and application of dotted UDT member tag references.
+* Reused TIA-generated Singlebit mapping entries to avoid duplicate-entry errors.
 
 ### [v0.0.3] - 2026-11-10
 * Added screen, item, and property context to HMI JSON export errors for unsupported dynamizations and mapping entries.

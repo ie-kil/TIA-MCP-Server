@@ -662,17 +662,41 @@ namespace TiaOpennessMcp.Tia
             return root;
         }
 
+        private static string? GetMemberTagRoot(string reference, Func<string, string?> getDataType)
+        {
+            int separator = reference.IndexOf('.');
+            while (separator > 0)
+            {
+                string root = reference.Substring(0, separator);
+                string memberPath = reference.Substring(separator + 1);
+                if (getDataType(root) != null &&
+                    System.Text.RegularExpressions.Regex.IsMatch(
+                        memberPath, @"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$"))
+                    return root;
+                separator = reference.IndexOf('.', separator + 1);
+            }
+            return null;
+        }
+
         private static HmiTag? FindReferencedTag(HmiSoftware hmi, string reference)
         {
             HmiTag? tag = hmi.Tags.Find(reference) ?? hmi.Tags.Find(GetTagLookupName(reference));
             if (tag != null) return tag;
             string? root = GetArrayTagRoot(reference, name => hmi.Tags.Find(name)?.DataType);
+            if (root != null) return hmi.Tags.Find(root);
+            root = GetMemberTagRoot(reference, name => hmi.Tags.Find(name)?.DataType);
             return root == null ? null : hmi.Tags.Find(root);
         }
 
-        private static bool ContainsTagReference(Dictionary<string, string> tags, string reference) =>
-            tags.ContainsKey(reference) || tags.ContainsKey(GetTagLookupName(reference)) ||
-            GetArrayTagRoot(reference, name => tags.TryGetValue(name, out string? type) ? type : null) != null;
+        private static bool ContainsTagReference(Dictionary<string, string> tags, string reference)
+        {
+            if (tags.ContainsKey(reference) || tags.ContainsKey(GetTagLookupName(reference)))
+                return true;
+            string? getDataType(string name) =>
+                tags.TryGetValue(name, out string? type) ? type : null;
+            return GetArrayTagRoot(reference, getDataType) != null ||
+                GetMemberTagRoot(reference, getDataType) != null;
+        }
 
         private static void VerifyManifestHash(string root, HmiJsonManifest manifest, string relativePath, string path)
         {
@@ -1677,10 +1701,14 @@ namespace TiaOpennessMcp.Tia
             {
                 BitDynamizationType bitDynamizationType =
                     ParseBitDynamizationType(document.Entries[0].BitDynamizationType);
-                var bitmaskEntries = table.Entries.Create(bitDynamizationType);
+                var bitmaskEntries = table.Entries.OfType<MappingTableEntryBitmask>().ToList();
+                if (table.Entries.Count == 0)
+                    bitmaskEntries = table.Entries.Create(bitDynamizationType).ToList();
                 if (bitmaskEntries.Count != document.Entries.Count)
                     throw new InvalidDataException(
                         $"TIA created {bitmaskEntries.Count} '{bitDynamizationType}' bitmask entries, but the JSON contains {document.Entries.Count}.");
+                if (table.Entries.Count != bitmaskEntries.Count)
+                    throw new InvalidDataException("TIA created unexpected non-bitmask entries for a bitmask mapping table.");
                 for (int i = 0; i < bitmaskEntries.Count; i++)
                 {
                     HmiJsonMappingEntry entry = document.Entries[i];

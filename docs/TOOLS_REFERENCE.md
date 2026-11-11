@@ -1040,6 +1040,9 @@ and all referenced files with `hmi_upload_import_file`. Use `hmi_import_json` wi
 server-managed transfer directories; no arbitrary server path is accepted by transfer
 tools. Edited files must have refreshed manifest hashes, or the import preview must
 explicitly set `verify_hashes: false`.
+A dynamization reference may be a dotted UDT member path such as
+`UnitParent_UnitData.UnitStatus.Error`; validation requires its root HMI tag to exist,
+and the full member path is preserved when assigned to TIA.
 
 ---
 

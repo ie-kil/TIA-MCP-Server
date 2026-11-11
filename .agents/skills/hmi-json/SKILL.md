@@ -143,7 +143,10 @@ Conventions:
   referenced by an item's `style` name.
 - Internal tags use `connection: "<Internal tag>"`, an empty `plcTag`, and `dataType`.
   An unset minimum/maximum is JSON null. Array-element bindings retain bracket syntax;
-  validation accepts existing member identities or indices within declared array bounds.
+  dotted UDT member bindings retain the full path and require an existing root HMI tag.
+  Import validation checks that the dotted suffix is well-formed, but does not resolve
+  member names against the PLC UDT; the TIA assignment/compile remains authoritative.
+  Array-element validation checks indices against declared array bounds.
 
 ## Editing an export
 
@@ -163,10 +166,11 @@ Conventions:
    pass `verify_hashes: false` to `hmi_import_json` and clearly disclose that
    integrity checks were bypassed. Do not change hashes for unedited files.
 6. Import supports Tag and Expression dynamizations with Simple/Range/Bitmask
-   converter mappings. TIA creates bitmask entries and import verifies their
-   generated relevant masks against the JSON. Other dynamization/mapping kinds fail
-   explicitly. Legacy `ExpressionDynamization` placeholders lack converter data:
-   re-export rather than attempting to import them.
+   converter mappings. Setting `Singlebit` may cause TIA to create its bitmask entries
+   automatically; reuse those entries and create them only if the table is empty.
+   Import verifies generated relevant masks against the JSON. Other
+   dynamization/mapping kinds fail explicitly. Legacy `ExpressionDynamization`
+   placeholders lack converter data: re-export rather than attempting to import them.
 
 ## In-place dynamization entry updates
 

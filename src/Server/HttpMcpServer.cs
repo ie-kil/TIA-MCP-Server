@@ -283,7 +283,7 @@ namespace TiaOpennessMcp.Server
             var statusObj = new
             {
                 server = "TiaOpennessMcp",
-                version = "2.0.0",
+                version = "0.0.4",
                 mode = _config.Server.Mode,
                 port = _config.Server.Port,
                 connected = tia.IsConnected,
