@@ -142,6 +142,17 @@ Use **single-object dynamization** instead of dual overlaid objects with visibil
   }
   ```
 
+For a targeted change to one existing mapping, use **`hmi_update_dynamization_entry`** rather than replacing the full dynamization. Its `entry_index` is zero-based; any supplied value type must match the existing entry, and unmodified entries and conditions are preserved:
+```json
+{
+  "screen_name": "Screen_2",
+  "item_name": "circ_M101",
+  "property_name": "BackColor",
+  "entry_index": 1,
+  "new_value": { "type": "Color", "value": "#E80000" }
+}
+```
+
 ### In-Place Button Script Updating
 When modifying existing button functions (e.g. changing `SetBitInTag` to `InvertBitInTag` or changing target tags), **do NOT delete and recreate screen items**. Modifying items in-place preserves layouts, object order, and styles:
 - **`hmi_update_button_scripts`**:
