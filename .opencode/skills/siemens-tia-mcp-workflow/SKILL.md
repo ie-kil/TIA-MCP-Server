@@ -1,5 +1,5 @@
 ---
-name: siemens_tia-mcp-workflow
+name: siemens-tia-mcp-workflow
 description: >-
   Route Siemens TIA Portal, WinCC Unified, HMI JSON, Figma-to-HMI, and
   S7-PLCSIM MCP requests to the right project skill. Use when deciding which
@@ -16,13 +16,13 @@ instructions before acting, and use the live MCP tool descriptions for arguments
 
 | User request | Read this skill |
 | --- | --- |
-| TIA connection/project status, devices, PLCs, blocks, tags, PLC edits or compile; direct WinCC Unified screen, widget, tag, connection, text-list, or HMI compile work; Siemens TestSuite | `siemens_tia-portal-openness` |
-| HMI export, inspection, editing, rendering, patching, or import specifically using the TIA MCP JSON format | `siemens_hmi-json` |
-| Recreate or adapt a Figma design into a WinCC Unified screen | `siemens_figma-to-wincc-unified`; also read `siemens_hmi-json` only if the user explicitly requests JSON export/import/patch work |
-| Connect to S7-PLCSIM, inspect or write simulated tags, control the virtual CPU, or run an online sequence verification | `siemens_plcsim-sequence-tester` |
+| TIA connection/project status, devices, PLCs, blocks, tags, PLC edits or compile; direct WinCC Unified screen, widget, tag, connection, text-list, or HMI compile work; Siemens TestSuite | `siemens-tia-portal-openness` |
+| HMI export, inspection, editing, rendering, patching, or import specifically using the TIA MCP JSON format | `siemens-hmi-json` |
+| Recreate or adapt a Figma design into a WinCC Unified screen | `siemens-figma-to-wincc-unified`; also read `siemens-hmi-json` only if the user explicitly requests JSON export/import/patch work |
+| Connect to S7-PLCSIM, inspect or write simulated tags, control the virtual CPU, or run an online sequence verification | `siemens-plcsim-sequence-tester` |
 
 OpenCode skill files are located at
-`.opencode/skills/siemens_<skill-name>/SKILL.md`. Compatible agent skills remain
+`.opencode/skills/siemens-<skill-name>/SKILL.md`. Compatible agent skills remain
 at `.agents/skills/<skill-name>/SKILL.md`. When a request spans workflows, read
 each applicable skill. For example, a Figma design that must then be imported
 through HMI JSON uses both the Figma and HMI JSON skills, with the HMI JSON
@@ -30,10 +30,10 @@ authorization requirements still applying.
 
 ## 2. Establish the target before operating
 
-1. For TIA or HMI work, read `siemens_tia-portal-openness` and check `tia_get_status`
+1. For TIA or HMI work, read `siemens-tia-portal-openness` and check `tia_get_status`
    before project operations. Identify the active project and intended device,
    PLC, or HMI target; discover targets rather than guessing when ambiguous.
-2. For PLCSIM work, read `siemens_plcsim-sequence-tester` and check
+2. For PLCSIM work, read `siemens-plcsim-sequence-tester` and check
    `plcsim_get_status` before simulation operations. Confirm that the target is
    the intended virtual controller, not a physical PLC.
 3. Keep the persistent TIA and PLCSIM connections open. Do not disconnect,
@@ -49,11 +49,11 @@ authorization requirements still applying.
 - Make only the requested change and follow the selected skill's authorization
   and safety requirements. In particular, HMI JSON use is opt-in: an ambiguous
   request to export or read an HMI is not authorization to use JSON; clarify
-  first. Preview JSON imports and patches as described in `siemens_hmi-json`.
+  first. Preview JSON imports and patches as described in `siemens-hmi-json`.
 - Preserve existing HMI items when changing their behavior; use the in-place
-  update workflow in `siemens_tia-portal-openness` rather than deleting and recreating
+  update workflow in `siemens-tia-portal-openness` rather than deleting and recreating
   them.
-- For sequence verification, use the `siemens_plcsim-sequence-tester` workflow. Before
+- For sequence verification, use the `siemens-plcsim-sequence-tester` workflow. Before
   starting a sequence, verify interlocks and readiness, reset faults as
   appropriate, and use the project's actual symbolic tags. Produce the
   required Markdown verification report with environment, recipe matrix,

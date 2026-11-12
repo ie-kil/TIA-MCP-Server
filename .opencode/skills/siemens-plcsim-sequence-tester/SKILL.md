@@ -1,5 +1,5 @@
 ---
-name: siemens_plcsim-sequence-tester
+name: siemens-plcsim-sequence-tester
 description: Execute automated online sequence verification tests on Siemens S7-PLCSIM Advanced virtual controllers, test state machines with parameterized inputs, record real-time telemetry, and generate comprehensive validation reports.
 ---
 
