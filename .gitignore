@@ -27,3 +27,4 @@ $RECYCLE.BIN/
 
 ## vscode generated
 .vscode/
+.mcp.json
