@@ -142,7 +142,11 @@ Use **single-object dynamization** instead of dual overlaid objects with visibil
   }
   ```
 
-For a targeted change to one existing mapping, use **`hmi_update_dynamization_entry`** rather than replacing the full dynamization. Its `entry_index` is zero-based; any supplied value type must match the existing entry, and unmodified entries and conditions are preserved:
+`hmi_set_tag_dynamization` creates or replaces the whole mapping. For an existing
+dynamization where only one entry changes, use **`hmi_update_dynamization_entry`**;
+its `entry_index` is zero-based, supplied value types must match the existing entry,
+and unspecified fields and entries are preserved. Do not use the setter as a
+single-entry editor.
 ```json
 {
   "screen_name": "Screen_2",
@@ -152,6 +156,15 @@ For a targeted change to one existing mapping, use **`hmi_update_dynamization_en
   "new_value": { "type": "Color", "value": "#E80000" }
 }
 ```
+
+For a direct dynamization edit, check `tia_get_status` and identify the HMI target
+first. Read the screen with `hmi_get_screen_items` before editing, verify the item,
+property, existing tag, condition type, and mapping entry index, then apply the
+appropriate direct tool. Do not use HMI JSON export/import for this direct workflow.
+Read the screen again to verify the resulting tag dynamization and compile with
+`hmi_compile`, passing the HMI device name as `target_device` (not the software
+target name). For detailed arguments and response shapes, read the MCP resource
+`tia://docs/tools-reference`; prefer the live tool schemas when available.
 
 ### In-Place Button Script Updating
 When modifying existing button functions (e.g. changing `SetBitInTag` to `InvertBitInTag` or changing target tags), **do NOT delete and recreate screen items**. Modifying items in-place preserves layouts, object order, and styles:
@@ -376,4 +389,4 @@ The MCP server integrates directly with **Siemens S7-PLCSIM Advanced API V8.0** 
 
 ### 7.2 Dedicated Verification Skill
 For executing automated multi-parameter batch testing, recipe matrix comparison, and verification report artifact generation, use the companion skill:
-👉 [`.agents/skills/plcsim-sequence-tester/SKILL.md`](file:///d:/TIA_Project/_AEs/TestMCP-DDup/UserFiles/AI/.agents/skills/plcsim-sequence-tester/SKILL.md)
+👉 [`plcsim-sequence-tester` skill](../plcsim-sequence-tester/SKILL.md)

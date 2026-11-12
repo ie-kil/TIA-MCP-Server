@@ -210,9 +210,12 @@ before calling it. It does not save the project.
   values are encoded as strings in this tool input.
 - The tool changes only the selected entry's supplied fields. It preserves the
   condition, mapping table order, and all unspecified fields and entries.
-- Verify the result with a fresh HMI JSON export and read the relevant screen file.
-  `hmi_get_screen_items` may omit Bitmask entries, so do not rely on it to verify a
-  Singlebit mapping table.
+- For a direct Openness update, verify the result with `hmi_get_screen_items` on the
+  same screen. Its `BitmaskEntries` include the Singlebit condition, relevant mask,
+  and value. Compare the returned dynamization state before and after the edit; do
+  not export/import JSON solely to verify a direct tool update. Compile the target
+  with `hmi_compile`. If a field changed by the updater is not present in the direct
+  readout, state that verification limitation rather than assuming it was preserved.
 
 Example: change the second BackColor entry to red:
 
@@ -386,5 +389,6 @@ patch. The patch also compiles and leaves the project unsaved.
 - Preserve validation and compiler diagnostics in the final report. Never describe
   an unsuccessful compile as a verified result.
 
-For the authoritative tool argument descriptions, see
-[the HMI JSON tool reference](../../../docs/TOOLS_REFERENCE.md#category-4-wincc-unified-hmi-screen--widget-engineering-39-tools).
+For detailed tool arguments and return shapes, read the MCP resource
+`tia://docs/tools-reference` (Category 4: WinCC Unified HMI Engineering). Prefer
+the live MCP tool schemas when available.

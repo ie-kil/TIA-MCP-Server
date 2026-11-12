@@ -67,7 +67,13 @@ skills, with the HMI JSON authorization requirements still applying.
 ## 4. Find exact tool arguments
 
 The focused skills describe workflows and common tool use. For exact parameters
-and return shapes, consult `docs/TOOLS_REFERENCE.md` or
-`docs/SKILLS_AND_TOOLS.md` and prefer the live MCP tool schema when available.
+and return shapes, prefer the live MCP tool schema. Read the supporting MCP
+resources when more context is useful:
+
+- `tia://docs/tools-reference` for detailed tool arguments and return shapes.
+- `tia://docs/skills-and-tools` for the server and skills overview.
+- `tia://docs/agent-prompting-and-system-functions` for prompting guidance and
+  WinCC Unified system functions.
+
 If a documented tool is absent from the live tool list, verify the configured
 server and tool availability instead of assuming a substitute.
