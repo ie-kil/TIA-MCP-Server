@@ -1,9 +1,9 @@
 ---
 name: hmi-json
 description: >-
-  Work with WinCC Unified HMI JSON exports from the TIA MCP server. Use when asked
-  to export, inspect, edit, review, version, or import HMI screens, widgets, tags,
-  alarms, dynamizations, event scripts, styles, or guarded JSON patches.
+  Work with WinCC Unified HMI JSON exports from the TIA MCP server. Use only when the
+  user explicitly requests an HMI JSON operation or authorizes this skill. Clarify
+  vague requests to export or read out an HMI when JSON intent is not stated.
 ---
 
 # WinCC Unified HMI JSON
@@ -14,14 +14,17 @@ checking the selected TIA project, target, or impact before importing changes.
 
 ## When to use
 
-- The user asks to export a Unified HMI target or inspect an existing HMI JSON export.
-- The user wants to edit screen layout, text, properties, tags, alarms, or scripts in
-  exported JSON rather than make a one-off series of widget calls.
-- The user asks to import an edited export or apply a guarded HMI patch.
+- Use this skill only when the user explicitly requests an HMI JSON operation (for
+  example, “export this HMI to JSON,” “inspect this HMI JSON export,” or “edit/import
+  this JSON”) or explicitly authorizes using the skill.
+- A request such as “export this HMI” or “read out this HMI” without mentioning JSON is
+  ambiguous; ask whether the user wants a JSON export before using this skill.
+- Do not infer authorization merely because the task could be performed with HMI JSON.
 
 For Figma-to-HMI design conversion, use the `figma-to-wincc-unified` skill to produce
-the screen design, then use this skill to serialize, review, and import that design.
-For other Openness operations, use `tia-portal-openness`.
+the screen design. Use this skill to serialize, review, or import that design only if
+the user explicitly requests JSON work or authorizes this skill. For other Openness
+operations, use `tia-portal-openness`.
 
 ## Safety and scope
 
