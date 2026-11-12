@@ -81,7 +81,7 @@ namespace TiaOpennessMcp
                         ServerInfo = new ServerInfo
                         {
                             Name = "tia-portal-openness-v21",
-                            Version = "2.1.0"
+                            Version = "2.2.0"
                         },
                         Capabilities = new ServerCapabilities
                         {

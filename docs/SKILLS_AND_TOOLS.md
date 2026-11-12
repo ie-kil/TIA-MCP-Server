@@ -1,7 +1,7 @@
 # Siemens TIA Portal V21 Openness MCP Server
 ## Complete Skills & Tools Reference Manual
 
-**Version:** 2.1.0
+**Version:** 2.2.0
 **Target Platform:** Siemens TIA Portal V21 (PublicAPI .NET Framework 4.8 x64)  
 **Supported Transports:** HTTP JSON-RPC 2.0, Server-Sent Events (SSE), stdio MCP  
 **Default Endpoints:** `http://localhost:5001/mcp`, `http://localhost:5001/sse`, `http://localhost:5001/status`
@@ -112,8 +112,11 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
   - `tia_list_devices`                     - `hmi_list_targets`                 - `tia_testsuite_list_tests`
   - `tia_list_plcs`                        - `hmi_list_screens`                 - `tia_testsuite_load_test`
   - `tia_list_blocks`                      - `hmi_get_screen_items`
+  -                                        - `hmi_get_screen_item` / `hmi_update_screen_item`
   - `tia_get_block_code`                   - `hmi_add_label` / `button`
   - `tia_import_block`                     - `hmi_set_tag_dynamization`
+         │                                 - `hmi_read_event_scripts` / `hmi_set_event_script`
+         │                                 - `hmi_set_expression_dynamization`
          │                                 - `hmi_update_button_scripts`
          ▼                                        │
   `tia_compile` (PLC)                             ▼
@@ -324,6 +327,8 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
   - `screen_name` *(string, required)*: Name of screen.
   - `target_name` *(string, optional)*: HMI software name.
 - **Returns:** Array of objects with `Left`, `Top`, `Width`, `Height`, `BackColor`, `BorderColor`, `Text`, `TappedScript`, and `Dynamizations`.
+
+For complete supported state on one item, use `hmi_get_screen_item`. To update its allowlisted properties without replacing the item, use `hmi_update_screen_item`. Use `hmi_read_event_scripts` / `hmi_set_event_script` for supported screen or item events, and `hmi_set_expression_dynamization` for an expression formula update that preserves existing mapping entries and other dynamizations. These direct updates verify readback and do not save the project.
 
 #### 25. `hmi_delete_screen_items`
 - **Description:** Delete specific screen items by name list or prefix (e.g. `"M101_"`).

@@ -63,6 +63,40 @@ try {
     if ($arrayCount -lt 7) {
         throw "Expected at least seven array parameters; found $arrayCount."
     }
+
+    $requiredHmiContracts = @{
+        hmi_get_screen_item = @('screen_name', 'item_name')
+        hmi_update_screen_item = @('screen_name', 'item_name', 'item_properties')
+        hmi_read_event_scripts = @('screen_name')
+        hmi_set_event_script = @('screen_name', 'event_type', 'script')
+        hmi_set_expression_dynamization = @('screen_name', 'item_name', 'property_name', 'expression', 'result_type')
+    }
+    foreach ($toolName in $requiredHmiContracts.Keys) {
+        $schemaPath = Join-Path $outputDirectory "$toolName.json"
+        if (-not (Test-Path -LiteralPath $schemaPath)) {
+            throw "Required HMI tool schema '$toolName' was not exported."
+        }
+        $schema = Get-Content -LiteralPath $schemaPath -Raw | ConvertFrom-Json
+        foreach ($parameter in $requiredHmiContracts[$toolName]) {
+            if ($parameter -notin $schema.parameters.required) {
+                throw "$toolName must require '$parameter'."
+            }
+        }
+    }
+    $updateSchema = Get-Content -LiteralPath (Join-Path $outputDirectory 'hmi_update_screen_item.json') -Raw | ConvertFrom-Json
+    foreach ($propertyName in @('Visible', 'Top', 'Left', 'Width', 'Height')) {
+        if ($null -eq $updateSchema.parameters.properties.item_properties.properties.$propertyName) {
+            throw "hmi_update_screen_item must expose '$propertyName' in its property allowlist."
+        }
+    }
+    if ($updateSchema.parameters.properties.item_properties.additionalProperties -ne $false) {
+        throw 'hmi_update_screen_item.item_properties must reject properties outside its allowlist.'
+    }
+    $expressionSchema = Get-Content -LiteralPath (Join-Path $outputDirectory 'hmi_set_expression_dynamization.json') -Raw | ConvertFrom-Json
+    if ($expressionSchema.parameters.properties.on_conflict.enum -notcontains 'replace') {
+        throw "hmi_set_expression_dynamization must expose explicit conflict handling."
+    }
+
     Write-Output "PASS: $($files.Count) tool schemas; $arrayCount typed array parameters; checked-in schemas match."
 }
 finally {

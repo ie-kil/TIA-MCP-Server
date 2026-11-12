@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security;
 using System.Text;
 using Siemens.Engineering;
@@ -313,6 +314,204 @@ namespace TiaOpennessMcp.Tia
             }
 
             return list;
+        }
+
+        public HmiEventScriptsDetails GetHmiEventScripts(
+            string screenName,
+            string? itemName = null,
+            string? targetName = null)
+        {
+            var hmiSw = FindHmiSoftware(targetName);
+            var screen = FindHmiScreen(hmiSw, screenName);
+            if (screen == null)
+                throw new InvalidOperationException($"Screen '{screenName}' not found.");
+
+            object target = screen;
+            string targetKind = "screen";
+            string targetNameForResult = screen.Name;
+            if (!string.IsNullOrWhiteSpace(itemName))
+            {
+                target = screen.ScreenItems.Find(itemName)
+                    ?? throw new InvalidOperationException($"Item '{itemName}' not found on screen '{screenName}'.");
+                targetKind = "item";
+                targetNameForResult = ((HmiScreenItemBase)target).Name;
+            }
+
+            EventHandlerSurface surface = GetEventHandlerSurface(target);
+            var result = new HmiEventScriptsDetails
+            {
+                ScreenName = screen.Name,
+                TargetKind = targetKind,
+                TargetName = targetNameForResult,
+                SupportedEventTypes = surface.EventType.IsEnum
+                    ? Enum.GetNames(surface.EventType).ToList()
+                    : new List<string>()
+            };
+
+            if (surface.Handlers is System.Collections.IEnumerable handlers)
+            {
+                foreach (object handler in handlers)
+                {
+                    object? eventType = handler.GetType().GetProperty("EventType")?.GetValue(handler, null);
+                    object? script = handler.GetType().GetProperty("Script")?.GetValue(handler, null);
+                    object? scriptCode = script?.GetType().GetProperty("ScriptCode")?.GetValue(script, null);
+                    if (eventType == null || scriptCode is not string code)
+                        throw new InvalidOperationException(
+                            $"An event handler on '{targetNameForResult}' does not expose readable event type and script code.");
+
+                    result.Events.Add(new HmiEventScriptEntry
+                    {
+                        EventType = eventType.ToString()!,
+                        Script = code
+                    });
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Event handlers on '{targetNameForResult}' are not enumerable through the V21 Openness API.");
+            }
+
+            return result;
+        }
+
+        public HmiEventScriptUpdateResult UpdateHmiEventScript(
+            string screenName,
+            string eventType,
+            string scriptCode,
+            string? itemName = null,
+            string? targetName = null)
+        {
+            if (string.IsNullOrWhiteSpace(eventType))
+                throw new ArgumentException("event_type is required.", nameof(eventType));
+            if (scriptCode == null)
+                throw new ArgumentNullException(nameof(scriptCode));
+
+            var hmiSw = FindHmiSoftware(targetName);
+            var screen = FindHmiScreen(hmiSw, screenName);
+            if (screen == null)
+                throw new InvalidOperationException($"Screen '{screenName}' not found.");
+
+            object target = screen;
+            string targetNameForResult = screen.Name;
+            if (!string.IsNullOrWhiteSpace(itemName))
+            {
+                target = screen.ScreenItems.Find(itemName)
+                    ?? throw new InvalidOperationException($"Item '{itemName}' not found on screen '{screenName}'.");
+                targetNameForResult = ((HmiScreenItemBase)target).Name;
+            }
+
+            EventHandlerSurface surface = GetEventHandlerSurface(target);
+            object eventValue;
+            if (surface.EventType.IsEnum)
+            {
+                string? supportedName = Enum.GetNames(surface.EventType).FirstOrDefault(name =>
+                    string.Equals(name, eventType, StringComparison.OrdinalIgnoreCase));
+                if (supportedName == null)
+                    throw new ArgumentException(
+                        $"Unsupported event '{eventType}' for '{targetNameForResult}'. Supported events: " +
+                        string.Join(", ", Enum.GetNames(surface.EventType)) + ".",
+                        nameof(eventType));
+                eventValue = Enum.Parse(surface.EventType, supportedName);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"The V21 Openness API exposes an unsupported event selector type '{surface.EventType.Name}'.");
+            }
+
+            HmiEventScriptsDetails readback;
+            HmiEventScriptEntry? updatedEvent;
+            object? script;
+            List<string> errors;
+            List<string> warnings;
+            using (ExclusiveAccess access = _tiaPortal!.ExclusiveAccess("Update Unified HMI event script"))
+            using (Transaction transaction = access.Transaction(_project!, "Update Unified HMI event script"))
+            {
+                object? handler = surface.Find?.Invoke(surface.Handlers, new[] { eventValue });
+                if (handler == null)
+                {
+                    try
+                    {
+                        handler = surface.Create.Invoke(surface.Handlers, new[] { eventValue });
+                    }
+                    catch (TargetInvocationException ex) when (ex.InnerException != null)
+                    {
+                        throw new InvalidOperationException(
+                            $"TIA could not create event '{eventType}' on '{targetNameForResult}': {ex.InnerException.Message}",
+                            ex.InnerException);
+                    }
+                }
+
+                script = handler?.GetType().GetProperty("Script")?.GetValue(handler, null);
+                PropertyInfo? scriptCodeProperty = script?.GetType().GetProperty("ScriptCode");
+                if (scriptCodeProperty?.CanWrite != true ||
+                    scriptCodeProperty.SetMethod?.IsPublic != true)
+                    throw new InvalidOperationException(
+                        $"Event '{eventType}' on '{targetNameForResult}' does not expose writable script code.");
+
+                scriptCodeProperty.SetValue(script, scriptCode, null);
+
+                readback = GetHmiEventScripts(screen.Name, itemName, targetName);
+                updatedEvent = readback.Events.FirstOrDefault(e =>
+                    string.Equals(e.EventType, eventType, StringComparison.OrdinalIgnoreCase));
+                if (updatedEvent == null || !string.Equals(updatedEvent.Script, scriptCode, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"Event script read-back verification failed for '{targetNameForResult}.{eventType}'.");
+
+                errors = GetScriptDiagnostics(script, "Errors");
+                warnings = GetScriptDiagnostics(script, "Warnings");
+                transaction.CommitOnDispose();
+            }
+
+            return new HmiEventScriptUpdateResult
+            {
+                ScreenName = screen.Name,
+                TargetKind = readback.TargetKind,
+                TargetName = targetNameForResult,
+                EventType = updatedEvent.EventType,
+                Script = updatedEvent.Script,
+                Errors = errors,
+                Warnings = warnings
+            };
+        }
+
+        private static EventHandlerSurface GetEventHandlerSurface(object target)
+        {
+            PropertyInfo? handlersProperty = target.GetType().GetProperty(
+                "EventHandlers",
+                BindingFlags.Instance | BindingFlags.Public);
+            object? handlers = handlersProperty?.GetValue(target, null);
+            if (handlers == null)
+                throw new InvalidOperationException(
+                    $"'{target.GetType().Name}' does not expose V21 event handlers.");
+
+            MethodInfo? create = handlers.GetType().GetMethods().FirstOrDefault(method =>
+                method.Name == "Create" && method.GetParameters().Length == 1 &&
+                method.GetParameters()[0].ParameterType.IsEnum);
+            if (create == null)
+                throw new InvalidOperationException(
+                    $"Event creation is not supported on '{target.GetType().Name}' by the V21 Openness API.");
+
+            Type eventType = create.GetParameters()[0].ParameterType;
+            MethodInfo? find = handlers.GetType().GetMethods().FirstOrDefault(method =>
+                method.Name == "Find" && method.GetParameters().Length == 1 &&
+                method.GetParameters()[0].ParameterType == eventType);
+            return new EventHandlerSurface(handlers, create, find, eventType);
+        }
+
+        private static List<string> GetScriptDiagnostics(object? script, string propertyName)
+        {
+            MethodInfo? syntaxCheck = script?.GetType().GetMethod("SyntaxCheck", Type.EmptyTypes);
+            object? diagnostics = syntaxCheck?.Invoke(script, null);
+            object? values = diagnostics?.GetType().GetProperty(propertyName)?.GetValue(diagnostics, null);
+            if (values is not System.Collections.IEnumerable enumerable)
+                return new List<string>();
+
+            return enumerable.Cast<object?>()
+                .Where(value => value != null)
+                .Select(value => value!.ToString()!)
+                .ToList();
         }
 
         public int DeleteHmiScreenItems(string screenName, List<string>? itemNames = null, string? prefix = null, string? targetName = null)
@@ -2012,6 +2211,46 @@ namespace TiaOpennessMcp.Tia
         public string? TappedScript { get; set; }
         public string? IOFieldType { get; set; }
         public List<DynamizationInfo> Dynamizations { get; } = new List<DynamizationInfo>();
+    }
+
+    public class HmiEventScriptsDetails
+    {
+        public string ScreenName { get; set; } = "";
+        public string TargetKind { get; set; } = "";
+        public string TargetName { get; set; } = "";
+        public List<string> SupportedEventTypes { get; set; } = new List<string>();
+        public List<HmiEventScriptEntry> Events { get; } = new List<HmiEventScriptEntry>();
+    }
+
+    public class HmiEventScriptEntry
+    {
+        public string EventType { get; set; } = "";
+        public string Script { get; set; } = "";
+    }
+
+    public class HmiEventScriptUpdateResult : HmiEventScriptEntry
+    {
+        public string ScreenName { get; set; } = "";
+        public string TargetKind { get; set; } = "";
+        public string TargetName { get; set; } = "";
+        public List<string> Errors { get; set; } = new List<string>();
+        public List<string> Warnings { get; set; } = new List<string>();
+    }
+
+    internal sealed class EventHandlerSurface
+    {
+        public EventHandlerSurface(object handlers, MethodInfo create, MethodInfo? find, Type eventType)
+        {
+            Handlers = handlers;
+            Create = create;
+            Find = find;
+            EventType = eventType;
+        }
+
+        public object Handlers { get; }
+        public MethodInfo Create { get; }
+        public MethodInfo? Find { get; }
+        public Type EventType { get; }
     }
 
     public class DynamizationInfo

@@ -4,13 +4,13 @@
 [![Simulation](https://img.shields.io/badge/Simulation-S7--PLCSIM%20Advanced%20V8.0-008080.svg)](https://support.industry.siemens.com)
 [![Protocol](https://img.shields.io/badge/MCP-2024--11--05-blue.svg)](https://modelcontextprotocol.io)
 [![Runtime](https://img.shields.io/badge/.NET%20Framework-4.8%20x64-512BD4.svg)](https://dotnet.microsoft.com)
-[![Version](https://img.shields.io/badge/Version-v2.0.1-blue.svg)](#version-history--bug-fixes)
-[![Tools](https://img.shields.io/badge/Tools-68%20Registered-brightgreen.svg)](#complete-tools-reference-dictionary-68-tools)
+[![Version](https://img.shields.io/badge/Version-v2.2.0-blue.svg)](#version-history--bug-fixes)
+[![Tools](https://img.shields.io/badge/Tools-77%20Registered-brightgreen.svg)](#complete-tools-reference-dictionary-77-tools)
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
 
 A high-performance, persistent **Model Context Protocol (MCP)** server providing AI coding agents (such as **Google Antigravity**, **Claude Desktop**, **Cursor**, and **VS Code**) with direct programmatic control over **Siemens TIA Portal V21** and **S7-PLCSIM Advanced V8.0**.
 
-Equipped with **68 specialized industrial automation tools**, this server bridges generative AI with deterministic industrial hardware and software—enabling automated PLC logic authoring, model-based architecture ingestion (Draw.io / PlantUML / Mermaid), automated design-to-HMI pipelines (Figma to WinCC Unified), live simulation memory I/O, and automated Hardware-in-the-Loop (HIL) sequence verification with telemetry report generation.
+Equipped with **77 specialized industrial automation tools**, this server bridges generative AI with deterministic industrial hardware and software—enabling automated PLC logic authoring, model-based architecture ingestion (Draw.io / PlantUML / Mermaid), automated design-to-HMI pipelines (Figma to WinCC Unified), live simulation memory I/O, and automated Hardware-in-the-Loop (HIL) sequence verification with telemetry report generation.
 
 ---
 
@@ -69,7 +69,7 @@ flowchart TD
     subgraph SERVER["⚡ TiaOpennessMcp Server (Persistent Daemon)"]
         TransportStdio["MCP stdio Handler<br/>Framing & JSON-RPC"]
         TransportHttp["HTTP / SSE Engine<br/>Port 5001"]
-        ToolRegistry["Tool Registry<br/>68 Industrial Automation Tools"]
+        ToolRegistry["Tool Registry<br/>77 Industrial Automation Tools"]
         TiaMgr["TiaManager (Singleton)<br/>Openness COM Bridge"]
         PlcSimMgr["PlcSimManager (Singleton)<br/>PLCSIM API V8.0 Bridge"]
     end
@@ -322,7 +322,7 @@ stateDiagram-v2
 
 ---
 
-## Complete Tools Reference Dictionary (68 Tools)
+## Complete Tools Reference Dictionary (77 Tools)
 
 | # | Tool Name | Category | Primary Parameters | Description |
 |:---:|:---|:---:|:---|:---|
@@ -398,6 +398,11 @@ stateDiagram-v2
 | 67 | `plcsim_run_sequence` | Verification | `start_command_tag`, `step_number_tag`, `done_tag`, ... | Universal automated sequence testing for any state machine. |
 | 68 | `plcsim_run_mixing_sequence`| Verification | Recipe parameters, `scale_factor` | Automated multi-parameter batch testing runner. |
 | 69 | `hmi_render_json` | HMI Preview | `input_directory`, `output_directory`, `screen_name`, `language`, `scale` | Offline PNGs, numbered overlays, and layout reports with nested screens. |
+| 73 | `hmi_get_screen_item` | HMI Screen | `screen_name`, `item_name` | Read all supported properties, event scripts, and full dynamization state for one item. |
+| 74 | `hmi_update_screen_item` | HMI Screen | `screen_name`, `item_name`, `item_properties` | Update allowlisted item properties in place and verify readback. |
+| 75 | `hmi_read_event_scripts` | HMI Logic | `screen_name`, `item_name` (opt) | Read screen or item event scripts and supported event names. |
+| 76 | `hmi_set_event_script` | HMI Logic | `screen_name`, `event_type`, `script`, `item_name` (opt) | Create or update one screen/item event script in place. |
+| 77 | `hmi_set_expression_dynamization` | HMI Logic | `screen_name`, `item_name`, `property_name`, `expression`, `result_type` | Set an expression formula while preserving existing mappings and other dynamizations. |
 
 ---
 
@@ -559,7 +564,7 @@ Open or create your Antigravity MCP configuration file at:
 *(Replace `C:\\path\\to\\TIA-MCP-Server\\release` with your actual absolute path using escaped backslashes `\\`)*.
 
 #### B. Tool Schema Registration (Lazy Loading)
-To enable Antigravity to lazy-load all 68 tools on demand, copy the JSON schemas from the repository's `schemas/` folder into your Antigravity MCP directory:
+To enable Antigravity to lazy-load all 77 tools on demand, copy the JSON schemas from the repository's `schemas/` folder into your Antigravity MCP directory:
 ```powershell
 New-Item -ItemType Directory -Path "$env:USERPROFILE\.gemini\antigravity\mcp\tia-portal-v21" -Force
 Copy-Item -Path ".\schemas\*.json" -Destination "$env:USERPROFILE\.gemini\antigravity\mcp\tia-portal-v21\" -Force
@@ -607,7 +612,7 @@ Launch Claude Code and check registered tools:
 claude
 > /mcp
 ```
-All 68 tools (`tia_*`, `hmi_*`, `plcsim_*`) will appear in the active MCP tools list. You can immediately ask:
+All 77 tools (`tia_*`, `hmi_*`, `plcsim_*`) will appear in the active MCP tools list. You can immediately ask:
 > *"Inspect the device tree of the active PLC and compile the software."*
 
 ---
@@ -625,7 +630,7 @@ All 68 tools (`tia_*`, `hmi_*`, `plcsim_*`) will appear in the active MCP tools 
   }
 }
 ```
-Restart Claude Desktop. The hammer icon (🛠️) in the input bar will display all 68 tools.
+Restart Claude Desktop. The hammer icon (🛠️) in the input bar will display all 77 tools.
 
 ---
 
@@ -695,7 +700,7 @@ Options:
   --pid <pid>                            Attach to specific TIA Portal process ID
   --config <path>, -c <path>             Load specific config.json file
   --test                                 Execute rapid TIA Portal connectivity test
-  --export-schemas [dir]                 Export all 68 MCP tool JSON schemas
+  --export-schemas [dir]                 Export all 77 MCP tool JSON schemas
   --render-hmi INPUT --output OUTPUT     Offline PNG/overlay/layout JSON rendering
     [--screen GROUP/NAME] [--language en-US] [--scale 2]
   --register-whitelist                   Register SHA-256 hash in Siemens AllowList
@@ -718,6 +723,11 @@ This repository includes 3 turnkey agent skills located in `.agents/skills/`:
 ---
 
 ## Version History & Bug Fixes
+
+### [v2.2.0] - 2026-11-12
+* Added direct, in-place HMI item property read/update tools with allowlisting and readback verification.
+* Added generic screen/item event-script read/write tools and an expression dynamization formula update tool that preserves unrelated entries.
+* Updated the reported MCP server version and assembly metadata to v2.2.0.
 
 ### [v2.0.1] - 2026-11-11
 * Reuse TIA-generated Singlebit mapping entries when Openness reports they already exist during entry creation.

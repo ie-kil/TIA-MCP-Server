@@ -494,6 +494,99 @@ namespace TiaOpennessMcp.Tools
                     return CallToolResult.Json(TiaManager.Instance.GetHmiScreenItems(screen, target));
                 });
 
+            Register("hmi_get_screen_item", "Read one screen item with its complete supported properties, event scripts, and full tag/expression dynamization state.",
+                schema =>
+                {
+                    schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Name of the screen containing the item." };
+                    schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Name of the item to inspect." };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software name (optional)." };
+                    schema.Required = new List<string> { "screen_name", "item_name" };
+                },
+                args =>
+                {
+                    string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
+                    string item = GetStringProp(args, "item_name") ?? throw new ArgumentException("item_name is required.");
+                    string? target = GetStringProp(args, "target_name");
+                    return CallToolResult.Json(TiaManager.Instance.GetHmiScreenItem(screen, item, target));
+                });
+
+            Register("hmi_update_screen_item", "Update allowlisted screen-item properties in place and verify the resulting item state.",
+                schema =>
+                {
+                    schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Name of the screen containing the item." };
+                    schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Name of the item to update." };
+                    schema.Properties["item_properties"] = new ToolProperty
+                    {
+                        Type = "object",
+                        Description = "Non-empty object of supported property/value pairs. Allowed names: Visible, Left, Top, Width, Height, CenterX, CenterY, Radius, BackColor, ForeColor, BorderColor, BorderWidth.",
+                        Properties = new Dictionary<string, ToolProperty>
+                        {
+                            ["Visible"] = new ToolProperty { Type = "boolean", Description = "Whether the item is visible." },
+                            ["Left"] = new ToolProperty { Type = "integer", Description = "Horizontal position." },
+                            ["Top"] = new ToolProperty { Type = "integer", Description = "Vertical position." },
+                            ["Width"] = new ToolProperty { Type = "integer", Description = "Item width." },
+                            ["Height"] = new ToolProperty { Type = "integer", Description = "Item height." },
+                            ["CenterX"] = new ToolProperty { Type = "integer", Description = "Circle center X coordinate." },
+                            ["CenterY"] = new ToolProperty { Type = "integer", Description = "Circle center Y coordinate." },
+                            ["Radius"] = new ToolProperty { Type = "integer", Description = "Circle radius." },
+                            ["BackColor"] = new ToolProperty { Type = "string", Description = "Background color (#RRGGBB, #AARRGGBB, or supported TIA color name)." },
+                            ["ForeColor"] = new ToolProperty { Type = "string", Description = "Foreground/text color (#RRGGBB, #AARRGGBB, or supported TIA color name)." },
+                            ["BorderColor"] = new ToolProperty { Type = "string", Description = "Border color (#RRGGBB, #AARRGGBB, or supported TIA color name)." },
+                            ["BorderWidth"] = new ToolProperty { Type = "integer", Description = "Border width." }
+                        },
+                        AdditionalProperties = false
+                    };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software name (optional)." };
+                    schema.Required = new List<string> { "screen_name", "item_name", "item_properties" };
+                },
+                args =>
+                {
+                    string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
+                    string item = GetStringProp(args, "item_name") ?? throw new ArgumentException("item_name is required.");
+                    if (!args.HasValue || !args.Value.TryGetProperty("item_properties", out JsonElement properties))
+                        throw new ArgumentException("item_properties is required.");
+                    string? target = GetStringProp(args, "target_name");
+                    return CallToolResult.Json(
+                        TiaManager.Instance.UpdateHmiScreenItemProperties(screen, item, properties, target));
+                });
+
+            Register("hmi_read_event_scripts", "Read event scripts and the V21-supported event names for a screen or one screen item.",
+                schema =>
+                {
+                    schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Screen name. When item_name is omitted, reads the screen's events." };
+                    schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Optional item name; omit to read screen events." };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software name (optional)." };
+                    schema.Required = new List<string> { "screen_name" };
+                },
+                args =>
+                {
+                    string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
+                    string? item = GetStringProp(args, "item_name");
+                    string? target = GetStringProp(args, "target_name");
+                    return CallToolResult.Json(TiaManager.Instance.GetHmiEventScripts(screen, item, target));
+                });
+
+            Register("hmi_set_event_script", "Create or update one supported screen or item event script in place and verify the script read-back.",
+                schema =>
+                {
+                    schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Screen name." };
+                    schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Optional item name; omit to update a screen event." };
+                    schema.Properties["event_type"] = new ToolProperty { Type = "string", Description = "Event enum name supported by the selected screen or item (see hmi_read_event_scripts)." };
+                    schema.Properties["script"] = new ToolProperty { Type = "string", Description = "Complete JavaScript event handler source." };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software name (optional)." };
+                    schema.Required = new List<string> { "screen_name", "event_type", "script" };
+                },
+                args =>
+                {
+                    string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
+                    string eventType = GetStringProp(args, "event_type") ?? throw new ArgumentException("event_type is required.");
+                    string script = GetStringProp(args, "script") ?? throw new ArgumentException("script is required.");
+                    string? item = GetStringProp(args, "item_name");
+                    string? target = GetStringProp(args, "target_name");
+                    return CallToolResult.Json(
+                        TiaManager.Instance.UpdateHmiEventScript(screen, eventType, script, item, target));
+                });
+
             Register("hmi_export_json", "Export a Unified HMI target as a versioned JSON directory containing screens, tag tables, alarms, optional styles, and file hashes.",
                 schema =>
                 {
@@ -955,6 +1048,42 @@ namespace TiaOpennessMcp.Tools
                         screen, item, property, entryIndex, newValue, newAlternateValue,
                         newFlashing, newFlashingRate, target);
                     return CallToolResult.Text(result);
+                });
+
+            Register("hmi_set_expression_dynamization", "Create or update one expression dynamization formula in place, preserving its mapping entries and all other item dynamizations.",
+                schema =>
+                {
+                    schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Target screen." };
+                    schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Target screen item." };
+                    schema.Properties["property_name"] = new ToolProperty { Type = "string", Description = "Item property to dynamize, such as Visible or Top." };
+                    schema.Properties["expression"] = new ToolProperty { Type = "string", Description = "Non-empty WinCC Unified expression formula." };
+                    schema.Properties["result_type"] = new ToolProperty
+                    {
+                        Type = "string",
+                        Description = "Declared result type; must match the target property's CLR type. Formula semantics are not statically inferred.",
+                        Enum = new List<string> { "Boolean", "Color", "String", "Byte", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Single", "Double", "Decimal" }
+                    };
+                    schema.Properties["on_conflict"] = new ToolProperty
+                    {
+                        Type = "string",
+                        Description = "Whether an existing tag dynamization on this same property may be replaced (default: fail).",
+                        Enum = new List<string> { "fail", "replace" },
+                        Default = "fail"
+                    };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software name (optional)." };
+                    schema.Required = new List<string> { "screen_name", "item_name", "property_name", "expression", "result_type" };
+                },
+                args =>
+                {
+                    string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
+                    string item = GetStringProp(args, "item_name") ?? throw new ArgumentException("item_name is required.");
+                    string property = GetStringProp(args, "property_name") ?? throw new ArgumentException("property_name is required.");
+                    string expression = GetStringProp(args, "expression") ?? throw new ArgumentException("expression is required.");
+                    string resultType = GetStringProp(args, "result_type") ?? throw new ArgumentException("result_type is required.");
+                    string onConflict = GetStringProp(args, "on_conflict") ?? "fail";
+                    string? target = GetStringProp(args, "target_name");
+                    return CallToolResult.Json(TiaManager.Instance.SetExpressionDynamization(
+                        screen, item, property, expression, resultType, onConflict, target));
                 });
 
             // 33. hmi_update_button_scripts

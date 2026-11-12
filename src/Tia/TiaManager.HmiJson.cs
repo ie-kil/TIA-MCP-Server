@@ -53,6 +53,222 @@ namespace TiaOpennessMcp.Tia
                 ["HmiToggleSwitch"] = typeof(HmiToggleSwitch)
             };
 
+        private static readonly HashSet<string> HmiItemPropertyUpdateAllowlist =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "Visible",
+                "Left",
+                "Top",
+                "Width",
+                "Height",
+                "CenterX",
+                "CenterY",
+                "Radius",
+                "BackColor",
+                "ForeColor",
+                "BorderColor",
+                "BorderWidth"
+            };
+
+        public object GetHmiScreenItem(string screenName, string itemName, string? targetName = null)
+        {
+            var hmi = FindHmiSoftware(targetName);
+            var screen = FindHmiScreen(hmi, screenName);
+            if (screen == null)
+                throw new InvalidOperationException($"Screen '{screenName}' not found.");
+            HmiScreenItemBase item = screen.ScreenItems.Find(itemName)
+                ?? throw new InvalidOperationException($"Item '{itemName}' not found on screen '{screenName}'.");
+
+            return JsonSerializer.SerializeToElement(
+                CreateItemDocument(item, GetHmiLanguages(hmi), screenPath: screen.Name),
+                HmiJsonOptions);
+        }
+
+        public object UpdateHmiScreenItemProperties(
+            string screenName,
+            string itemName,
+            JsonElement properties,
+            string? targetName = null)
+        {
+            if (properties.ValueKind != JsonValueKind.Object)
+                throw new InvalidDataException("item_properties must be a JSON object.");
+
+            var updates = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+            var seenProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (JsonProperty update in properties.EnumerateObject())
+            {
+                if (!seenProperties.Add(update.Name))
+                    throw new InvalidDataException($"item_properties contains duplicate property '{update.Name}'.");
+                if (!HmiItemPropertyUpdateAllowlist.Contains(update.Name))
+                    throw new InvalidDataException(
+                        $"Unsupported item property '{update.Name}'. Allowed properties: " +
+                        string.Join(", ", HmiItemPropertyUpdateAllowlist.OrderBy(name => name, StringComparer.Ordinal)) + ".");
+                updates.Add(update.Name, update.Value.Clone());
+            }
+            if (updates.Count == 0)
+                throw new InvalidDataException("item_properties must contain at least one supported property.");
+
+            var hmi = FindHmiSoftware(targetName);
+            var screen = FindHmiScreen(hmi, screenName);
+            if (screen == null)
+                throw new InvalidOperationException($"Screen '{screenName}' not found.");
+            HmiScreenItemBase item = screen.ScreenItems.Find(itemName)
+                ?? throw new InvalidOperationException($"Item '{itemName}' not found on screen '{screenName}'.");
+
+            foreach (KeyValuePair<string, JsonElement> update in updates)
+            {
+                PropertyInfo property = FindProperty(item.GetType(), update.Key);
+                if (property.SetMethod?.IsPublic != true)
+                    throw new InvalidDataException($"Property '{update.Key}' is read-only on '{item.GetType().Name}'.");
+                ValidatePatchProperty(item.GetType(), update.Key, update.Value);
+            }
+
+            using (ExclusiveAccess access = _tiaPortal!.ExclusiveAccess("Update Unified HMI screen item properties"))
+            using (Transaction transaction = access.Transaction(_project!, "Update Unified HMI screen item properties"))
+            {
+                foreach (KeyValuePair<string, JsonElement> update in updates)
+                {
+                    PropertyInfo property = FindProperty(item.GetType(), update.Key);
+                    SetPropertyValue(item, property, update.Value);
+                }
+
+                VerifyObjectProperties(item, updates);
+                transaction.CommitOnDispose();
+            }
+
+            return JsonSerializer.SerializeToElement(
+                CreateItemDocument(item, GetHmiLanguages(hmi), screenPath: screen.Name),
+                HmiJsonOptions);
+        }
+
+        public object SetExpressionDynamization(
+            string screenName,
+            string itemName,
+            string propertyName,
+            string expression,
+            string resultType,
+            string onConflict = "fail",
+            string? targetName = null)
+        {
+            if (string.IsNullOrWhiteSpace(expression))
+                throw new ArgumentException("expression must not be empty.", nameof(expression));
+            if (!string.Equals(onConflict, "fail", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(onConflict, "replace", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("on_conflict must be 'fail' or 'replace'.", nameof(onConflict));
+
+            Type resultClrType = GetExpressionResultType(resultType);
+            var hmi = FindHmiSoftware(targetName);
+            var screen = FindHmiScreen(hmi, screenName);
+            if (screen == null)
+                throw new InvalidOperationException($"Screen '{screenName}' not found.");
+            HmiScreenItemBase item = screen.ScreenItems.Find(itemName)
+                ?? throw new InvalidOperationException($"Item '{itemName}' not found on screen '{screenName}'.");
+
+            PropertyInfo targetProperty = FindProperty(item.GetType(), propertyName);
+            propertyName = targetProperty.Name;
+            Type propertyType = Nullable.GetUnderlyingType(targetProperty.PropertyType) ?? targetProperty.PropertyType;
+            if (propertyType != resultClrType)
+                throw new InvalidDataException(
+                    $"Expression result type '{resultType}' does not match target property '{propertyName}' " +
+                    $"of type '{propertyType.Name}'.");
+            if (!IsSupportedValue(propertyType))
+                throw new InvalidDataException(
+                    $"Expression dynamization is not supported for property '{propertyName}' on '{item.GetType().Name}'.");
+
+            DynamizationBase? existing = item.Dynamizations.Find(propertyName);
+            if (existing != null && !(existing is ExpressionDynamization) &&
+                !string.Equals(onConflict, "replace", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    $"Refusing to replace '{existing.GetType().Name}' dynamization on '{item.Name}.{propertyName}'.");
+
+            HmiJsonDynamization? expectedExistingExpression = existing is ExpressionDynamization
+                ? CreateDynamizationDocument(existing)
+                : null;
+            string propertyKey = existing?.PropertyName ?? propertyName;
+            var preservedDynamizations = item.Dynamizations
+                .Where(dynamization => !string.Equals(
+                    dynamization.PropertyName, propertyKey, StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(
+                    dynamization => dynamization.PropertyName,
+                    dynamization => JsonSerializer.SerializeToElement(
+                        CreateDynamizationDocument(dynamization), HmiJsonOptions),
+                    StringComparer.OrdinalIgnoreCase);
+
+            using (ExclusiveAccess access = _tiaPortal!.ExclusiveAccess("Set Unified HMI expression dynamization"))
+            using (Transaction transaction = access.Transaction(_project!, "Set Unified HMI expression dynamization"))
+            {
+                if (existing != null && !(existing is ExpressionDynamization))
+                    existing.Delete();
+
+                var expressionDynamization = item.Dynamizations.Find(propertyName) as ExpressionDynamization
+                    ?? item.Dynamizations.Create<ExpressionDynamization>(propertyName);
+                expressionDynamization.ValueConverter.Formula = expression;
+                expressionDynamization.ValueConverter.IsFormulaSelected = true;
+
+                HmiJsonDynamization actual = CreateDynamizationDocument(expressionDynamization);
+                if (!string.Equals(actual.ValueConverter?.Formula, expression, StringComparison.Ordinal) ||
+                    actual.ValueConverter?.IsFormulaSelected != true)
+                    throw new InvalidOperationException(
+                        $"Expression dynamization read-back verification failed for '{item.Name}.{propertyName}'.");
+
+                if (expectedExistingExpression?.ValueConverter != null)
+                {
+                    expectedExistingExpression.ValueConverter.Formula = expression;
+                    expectedExistingExpression.ValueConverter.IsFormulaSelected = true;
+                    expectedExistingExpression.OnConflict = actual.OnConflict;
+                    if (!AreJsonValuesEqual(
+                        JsonSerializer.SerializeToElement(expectedExistingExpression, HmiJsonOptions),
+                        JsonSerializer.SerializeToElement(actual, HmiJsonOptions)))
+                        throw new InvalidOperationException(
+                            $"Expression update did not preserve existing mapping entries for '{item.Name}.{propertyName}'.");
+                }
+
+                if (item.Dynamizations.Count != preservedDynamizations.Count + 1)
+                    throw new InvalidOperationException(
+                        $"Updating '{item.Name}.{propertyName}' changed the number of unrelated dynamizations.");
+                foreach (DynamizationBase other in item.Dynamizations)
+                {
+                    if (string.Equals(other.PropertyName, propertyName, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (!preservedDynamizations.TryGetValue(other.PropertyName, out JsonElement expected) ||
+                        !AreJsonValuesEqual(
+                            expected,
+                            JsonSerializer.SerializeToElement(CreateDynamizationDocument(other), HmiJsonOptions)))
+                        throw new InvalidOperationException(
+                            $"Updating '{item.Name}.{propertyName}' changed unrelated dynamization '{other.PropertyName}'.");
+                }
+
+                transaction.CommitOnDispose();
+            }
+
+            return JsonSerializer.SerializeToElement(
+                CreateDynamizationDocument(item.Dynamizations.Find(propertyName)!),
+                HmiJsonOptions);
+        }
+
+        private static Type GetExpressionResultType(string resultType)
+        {
+            switch (resultType)
+            {
+                case "Boolean": return typeof(bool);
+                case "Color": return typeof(Color);
+                case "String": return typeof(string);
+                case "Byte": return typeof(byte);
+                case "Int16": return typeof(short);
+                case "UInt16": return typeof(ushort);
+                case "Int32": return typeof(int);
+                case "UInt32": return typeof(uint);
+                case "Int64": return typeof(long);
+                case "UInt64": return typeof(ulong);
+                case "Single": return typeof(float);
+                case "Double": return typeof(double);
+                case "Decimal": return typeof(decimal);
+                default:
+                    throw new InvalidDataException(
+                        $"Unsupported expression result type '{resultType}'.");
+            }
+        }
+
         public Dictionary<string, object> ExportHmiJson(
             string directory,
             bool compact = true,
