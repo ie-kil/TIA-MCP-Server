@@ -1,7 +1,7 @@
 # Siemens TIA Portal V21 Openness MCP Server
 ## Complete Skills & Tools Reference Manual
 
-**Version:** 2.0.0  
+**Version:** 2.1.0
 **Target Platform:** Siemens TIA Portal V21 (PublicAPI .NET Framework 4.8 x64)  
 **Supported Transports:** HTTP JSON-RPC 2.0, Server-Sent Events (SSE), stdio MCP  
 **Default Endpoints:** `http://localhost:5001/mcp`, `http://localhost:5001/sse`, `http://localhost:5001/status`
@@ -11,6 +11,16 @@
 ## 1. Architecture & Connection Persistence
 
 The TIA Openness MCP Server functions as a high-performance, persistent connector between AI agents and Siemens TIA Portal. 
+
+The server also provides read-only MCP documentation resources:
+
+| URI | Contents |
+| --- | --- |
+| `tia://docs/tools-reference` | Detailed tool arguments and return shapes. |
+| `tia://docs/skills-and-tools` | This skills and tools overview. |
+| `tia://docs/agent-prompting-and-system-functions` | Prompting guidance and WinCC Unified system functions. |
+
+Read these through the MCP resource interface. Live tool schemas remain authoritative for tool availability and arguments.
 
 ```
  +--------------------------------------------------------------------------------+

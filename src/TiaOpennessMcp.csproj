@@ -8,9 +8,9 @@
     <LangVersion>9.0</LangVersion>
     <Nullable>enable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
-    <AssemblyVersion>2.0.1.0</AssemblyVersion>
-    <FileVersion>2.0.1.0</FileVersion>
-    <Version>2.0.1</Version>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
+    <FileVersion>2.1.0.0</FileVersion>
+    <Version>2.1.0</Version>
   </PropertyGroup>
 
   <!--
@@ -30,6 +30,18 @@
 
   <ItemGroup>
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\docs\TOOLS_REFERENCE.md">
+      <LogicalName>TiaOpennessMcp.Resources.ToolsReference.md</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\docs\SKILLS_AND_TOOLS.md">
+      <LogicalName>TiaOpennessMcp.Resources.SkillsAndTools.md</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\docs\AGENT_PROMPTING_AND_SYSTEM_FUNCTIONS.md">
+      <LogicalName>TiaOpennessMcp.Resources.AgentPromptingAndSystemFunctions.md</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

@@ -283,7 +283,7 @@ namespace TiaOpennessMcp.Server
             var statusObj = new
             {
                 server = "TiaOpennessMcp",
-                version = "2.0.1",
+                version = "2.1.0",
                 mode = _config.Server.Mode,
                 port = _config.Server.Port,
                 connected = tia.IsConnected,
@@ -476,11 +476,12 @@ namespace TiaOpennessMcp.Server
                         ServerInfo = new ServerInfo
                         {
                             Name = "tia-portal-openness-v21",
-                            Version = "2.0.1"
+                            Version = "2.1.0"
                         },
                         Capabilities = new ServerCapabilities
                         {
-                            Tools = new System.Collections.Generic.Dictionary<string, object>()
+                            Tools = new System.Collections.Generic.Dictionary<string, object>(),
+                            Resources = new System.Collections.Generic.Dictionary<string, object>()
                         }
                     };
                     return JsonSerializer.Serialize(JsonRpcResponse.Success(req.Id, initResult), _jsonOptions);
@@ -495,11 +496,48 @@ namespace TiaOpennessMcp.Server
                     };
                     return JsonSerializer.Serialize(JsonRpcResponse.Success(req.Id, toolsResult), _jsonOptions);
 
+                case "resources/list":
+                    return JsonSerializer.Serialize(
+                        JsonRpcResponse.Success(req.Id, McpResourceCatalog.List()), _jsonOptions);
+
+                case "resources/read":
+                    return HandleResourceRead(req);
+
                 case "tools/call":
                     return HandleToolCall(req);
 
                 default:
                     return JsonSerializer.Serialize(JsonRpcResponse.Fail(req.Id, -32601, $"Method not found: '{req.Method}'"), _jsonOptions);
+            }
+        }
+
+        private string HandleResourceRead(JsonRpcRequest req)
+        {
+            if (req.Params == null ||
+                req.Params.Value.ValueKind != JsonValueKind.Object ||
+                !req.Params.Value.TryGetProperty("uri", out JsonElement uriElement) ||
+                uriElement.ValueKind != JsonValueKind.String)
+            {
+                return JsonSerializer.Serialize(
+                    JsonRpcResponse.Fail(req.Id, -32602, "Invalid params: expected a string 'uri'."),
+                    _jsonOptions);
+            }
+
+            string uri = uriElement.GetString()!;
+            try
+            {
+                return JsonSerializer.Serialize(
+                    JsonRpcResponse.Success(req.Id, McpResourceCatalog.Read(uri)), _jsonOptions);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return JsonSerializer.Serialize(
+                    JsonRpcResponse.Fail(req.Id, -32002, ex.Message), _jsonOptions);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return JsonSerializer.Serialize(
+                    JsonRpcResponse.Fail(req.Id, -32603, ex.Message), _jsonOptions);
             }
         }
 

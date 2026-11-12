@@ -92,7 +92,7 @@ namespace TiaOpennessMcp.Protocol
         public string Name { get; set; } = "tia-portal-openness-v21";
 
         [JsonPropertyName("version")]
-        public string Version { get; set; } = "1.0.0";
+        public string Version { get; set; } = "2.1.0";
     }
 
     public class ToolDefinition
