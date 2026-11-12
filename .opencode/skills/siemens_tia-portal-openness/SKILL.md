@@ -1,5 +1,5 @@
 ---
-name: tia-portal-openness
+name: siemens_tia-portal-openness
 description: >-
   Interact with Siemens TIA Portal V21 and WinCC Unified HMI via the persistent Openness MCP server connector.
   Provides workflows for checking status, inspecting devices & PLCs, managing SCL/SimaticML blocks,
@@ -389,4 +389,4 @@ The MCP server integrates directly with **Siemens S7-PLCSIM Advanced API V8.0** 
 
 ### 7.2 Dedicated Verification Skill
 For executing automated multi-parameter batch testing, recipe matrix comparison, and verification report artifact generation, use the companion skill:
-👉 [`plcsim-sequence-tester` skill](../plcsim-sequence-tester/SKILL.md)
+👉 [`siemens_plcsim-sequence-tester` skill](../siemens_plcsim-sequence-tester/SKILL.md)

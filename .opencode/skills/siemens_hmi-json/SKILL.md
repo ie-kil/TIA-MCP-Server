@@ -1,5 +1,5 @@
 ---
-name: hmi-json
+name: siemens_hmi-json
 description: >-
   Work with WinCC Unified HMI JSON exports from the TIA MCP server. Use only when the
   user explicitly requests an HMI JSON operation or authorizes this skill. Clarify
@@ -21,10 +21,10 @@ checking the selected TIA project, target, or impact before importing changes.
   ambiguous; ask whether the user wants a JSON export before using this skill.
 - Do not infer authorization merely because the task could be performed with HMI JSON.
 
-For Figma-to-HMI design conversion, use the `figma-to-wincc-unified` skill to produce
+For Figma-to-HMI design conversion, use the `siemens_figma-to-wincc-unified` skill to produce
 the screen design. Use this skill to serialize, review, or import that design only if
 the user explicitly requests JSON work or authorizes this skill. For other Openness
-operations, use `tia-portal-openness`.
+operations, use `siemens_tia-portal-openness`.
 
 ## Safety and scope
 
@@ -51,7 +51,7 @@ operations, use `tia-portal-openness`.
 ## Export workflow
 
 1. Check the TIA connection and active project using `tia_get_status`. If not connected,
-   follow the connection procedure in `tia-portal-openness`.
+   follow the connection procedure in `siemens_tia-portal-openness`.
 2. Resolve the intended target with `hmi_list_targets` when needed.
 3. Call `hmi_export_json` with an absolute `output_directory` when the caller can
    access the server filesystem. For remote clients without a shared filesystem, omit

@@ -1,5 +1,5 @@
 ---
-name: figma-to-wincc-unified
+name: siemens_figma-to-wincc-unified
 description: Convert Figma visual designs and design tokens into functional Siemens WinCC Unified V21 HMI screens using TIA Openness.
 ---
 
