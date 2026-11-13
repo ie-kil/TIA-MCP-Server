@@ -1,5 +1,5 @@
 # Siemens TIA Portal V21 Openness MCP Server
-## Complete Tools Reference Dictionary (77 Tools)
+## Complete Tools Reference Dictionary (78 Tools)
 
 **Protocol Specification:** Model Context Protocol (MCP) JSON-RPC 2.0  
 **Transport Binding:** HTTP (`POST /mcp`), SSE (`GET /sse`), stdio  
@@ -15,7 +15,7 @@
 | **1** | [Connection & Session Management](#category-1-connection--session-management-8-tools) | 8 | `tia_get_status`, `tia_list_processes`, `tia_connect`, `tia_disconnect`, `tia_get_project_info`, `tia_open_project`, `tia_save_project`, `tia_close_project` |
 | **2** | [Hardware & Device Topology](#category-2-hardware--device-topology-2-tools) | 2 | `tia_list_devices`, `tia_get_device_tree` |
 | **3** | [PLC Software, Blocks & Compilation](#category-3-plc-software-blocks--compilation-9-tools) | 9 | `tia_list_plcs`, `tia_list_blocks`, `tia_get_block_code`, `tia_import_block`, `tia_delete_block`, `tia_list_plc_types`, `tia_get_plc_type`, `tia_import_plc_type`, `tia_compile` |
-| **4** | [WinCC Unified HMI Engineering](#category-4-wincc-unified-hmi-screen--widget-engineering-44-tools) | 44 | `hmi_list_targets`, `hmi_list_screens`, `hmi_create_screen`, `hmi_delete_screen`, `hmi_get_screen_items`, `hmi_get_screen_item`, `hmi_update_screen_item`, `hmi_read_event_scripts`, `hmi_set_event_script`, `hmi_delete_screen_items`, `hmi_add_label`, `hmi_add_button`, `hmi_add_toggle_switch`, `hmi_add_shape`, `hmi_add_io_field`, `hmi_set_tag_dynamization`, `hmi_update_dynamization_entry`, `hmi_set_expression_dynamization`, `hmi_update_button_scripts`, `hmi_list_tag_tables`, `hmi_list_tags`, `hmi_create_tag`, `hmi_create_discrete_alarm`, `hmi_update_tag_acquisition_cycles`, `hmi_set_tag_range`, `hmi_create_data_log`, `hmi_assign_logging_tags`, `hmi_list_connections`, `hmi_create_connection`, `hmi_delete_connection`, `hmi_list_text_lists`, `hmi_create_text_list`, `hmi_delete_text_list`, `hmi_export_text_lists`, `hmi_compile`, `tia_list_tag_tables`, `tia_get_tags`, `hmi_export_json`, `hmi_read_export_file`, `hmi_begin_import`, `hmi_upload_import_file`, `hmi_import_json`, `hmi_patch_json`, `hmi_render_json` |
+| **4** | [WinCC Unified HMI Engineering](#category-4-wincc-unified-hmi-screen--widget-engineering-45-tools) | 45 | `hmi_list_targets`, `hmi_list_screens`, `hmi_create_screen`, `hmi_delete_screen`, `hmi_get_screen_items`, `hmi_get_screen_item`, `hmi_update_screen_item`, `hmi_read_event_scripts`, `hmi_set_event_script`, `hmi_delete_screen_items`, `hmi_add_label`, `hmi_add_button`, `hmi_add_toggle_switch`, `hmi_add_shape`, `hmi_add_io_field`, `hmi_set_tag_dynamization`, `hmi_update_dynamization_entry`, `hmi_set_expression_dynamization`, `hmi_get_js_type_definitions`, `hmi_update_button_scripts`, `hmi_list_tag_tables`, `hmi_list_tags`, `hmi_create_tag`, `hmi_create_discrete_alarm`, `hmi_update_tag_acquisition_cycles`, `hmi_set_tag_range`, `hmi_create_data_log`, `hmi_assign_logging_tags`, `hmi_list_connections`, `hmi_create_connection`, `hmi_delete_connection`, `hmi_list_text_lists`, `hmi_create_text_list`, `hmi_delete_text_list`, `hmi_export_text_lists`, `hmi_compile`, `tia_list_tag_tables`, `tia_get_tags`, `hmi_export_json`, `hmi_read_export_file`, `hmi_begin_import`, `hmi_upload_import_file`, `hmi_import_json`, `hmi_patch_json`, `hmi_render_json` |
 | **5** | [Siemens TestSuite Automation](#category-5-siemens-testsuite-automation-2-tools) | 2 | `tia_testsuite_list_tests`, `tia_testsuite_load_test` |
 | **6** | [S7-PLCSIM Advanced Live Simulation & Testing](#category-6-s7-plcsim-advanced-live-simulation--testing-12-tools) | 12 | `plcsim_list_instances`, `plcsim_connect`, `plcsim_disconnect`, `plcsim_get_status`, `plcsim_set_operating_state`, `plcsim_set_scale_factor`, `plcsim_read_tag`, `plcsim_write_tag`, `plcsim_read_tags`, `plcsim_write_tags`, `plcsim_run_sequence`, `plcsim_run_mixing_sequence` |
 
@@ -28,9 +28,10 @@ The server exposes these read-only Markdown resources through `resources/list` a
 | `tia://docs/tools-reference` | Detailed tool arguments and return shapes. |
 | `tia://docs/skills-and-tools` | Server, skills, and tools overview. |
 | `tia://docs/agent-prompting-and-system-functions` | Agent prompting guidance and WinCC Unified system functions. |
+| `tia://docs/hmi-javascript-type-definitions` | Bundled TypeScript declaration subset for documented WinCC Unified runtime APIs. |
 
 Use the live tool schemas as the authority for currently available tool names and arguments.
-The bundled Openness assemblies cover authoring APIs, not the WinCC Unified runtime-script declaration surface, and this repository contains no V21 runtime `.d.ts` file. No runtime type-definition resource or unverified tag-read/item-access examples are advertised.
+The bundled Openness assemblies cover authoring APIs, not the complete WinCC Unified runtime-script declaration surface. The JavaScript type-definition resource is an explicitly scoped subset based on APIs documented by this server; it is not a Siemens-generated V21 declaration file. It omits unverified tag-read and direct item-object access APIs.
 
 ---
 
@@ -357,7 +358,7 @@ The bundled Openness assemblies cover authoring APIs, not the WinCC Unified runt
 
 ---
 
-## Category 4: WinCC Unified HMI Screen & Widget Engineering (44 Tools)
+## Category 4: WinCC Unified HMI Screen & Widget Engineering (45 Tools)
 
 ### 20. `hmi_list_targets`
 - **Description:** Enumerates all WinCC Unified runtime devices and software containers.
@@ -1114,6 +1115,14 @@ and the full member path is preserved when assigned to TIA.
 - **Parameters:** `screen_name`, `item_name`, `property_name`, `expression`, and `result_type` are required; `on_conflict` (`fail` or `replace`) and `target_name` are optional.
 - **Declared result types:** `Boolean`, `Color`, `String`, `Byte`, `Int16`, `UInt16`, `Int32`, `UInt32`, `Int64`, `UInt64`, `Single`, `Double`, and `Decimal`. The declared type must match the target property's CLR type. The formula must be non-empty; its expression semantics are not statically inferred by this tool.
 - **Behavior:** Replacing a tag dynamization on the same property requires `on_conflict: "replace"`. Formula state and existing mapping entries are verified by readback. No project save or compile is performed.
+
+### New in v2.3.0: Runtime JavaScript declarations
+
+#### `hmi_get_js_type_definitions`
+- **Description:** Returns the server-bundled TypeScript declarations for the WinCC Unified runtime APIs documented by this server.
+- **Parameters:** None.
+- **Behavior:** This is an offline, read-only reference operation and does not connect to TIA Portal. The returned declarations are a conservative subset, not Siemens' complete or vendor-generated V21 type definitions. Unverified tag-read and direct item-object access APIs are intentionally omitted.
+- **Resource:** The same declaration file is available at `tia://docs/hmi-javascript-type-definitions` with MIME type `text/typescript`.
 
 ---
 

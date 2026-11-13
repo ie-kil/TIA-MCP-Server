@@ -70,6 +70,7 @@ The TIA Openness MCP server operates as a persistent daemon process maintaining 
   { "screen_name": "Screen_2", "width": 1920, "height": 1080 }
   ```
 - **`hmi_get_screen_items`**: Inspect all widgets, shapes, text, scripts, and dynamizations on a screen.
+- **`hmi_get_js_type_definitions`**: Get the server-bundled TypeScript declaration subset for runtime APIs documented by this server. It is not the complete Siemens V21 API; see `tia://docs/hmi-javascript-type-definitions`.
 
 ### Creating Widgets & Controls
 - **`hmi_add_label`**: Add a text label or banner (text is HTML-escaped and wrapped automatically):
@@ -165,6 +166,11 @@ Read the screen again to verify the resulting tag dynamization and compile with
 `hmi_compile`, passing the HMI device name as `target_device` (not the software
 target name). For detailed arguments and response shapes, read the MCP resource
 `tia://docs/tools-reference`; prefer the live tool schemas when available.
+
+For JavaScript API references, use `hmi_get_js_type_definitions` or read
+`tia://docs/hmi-javascript-type-definitions`. The bundled declarations are a
+documented subset, not the complete Siemens V21 runtime API. Do not infer
+support for APIs absent from that subset.
 
 ### In-Place Button Script Updating
 When modifying existing button functions (e.g. changing `SetBitInTag` to `InvertBitInTag` or changing target tags), **do NOT delete and recreate screen items**. Modifying items in-place preserves layouts, object order, and styles:

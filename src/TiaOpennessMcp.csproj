@@ -8,9 +8,9 @@
     <LangVersion>9.0</LangVersion>
     <Nullable>enable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
-    <AssemblyVersion>2.2.0.0</AssemblyVersion>
-    <FileVersion>2.2.0.0</FileVersion>
-    <Version>2.2.0</Version>
+    <AssemblyVersion>2.3.0.0</AssemblyVersion>
+    <FileVersion>2.3.0.0</FileVersion>
+    <Version>2.3.0</Version>
   </PropertyGroup>
 
   <!--
@@ -41,6 +41,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="..\docs\AGENT_PROMPTING_AND_SYSTEM_FUNCTIONS.md">
       <LogicalName>TiaOpennessMcp.Resources.AgentPromptingAndSystemFunctions.md</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\docs\HMI_JAVASCRIPT_TYPE_DEFINITIONS.d.ts">
+      <LogicalName>TiaOpennessMcp.Resources.HmiJavaScriptTypeDefinitions.d.ts</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

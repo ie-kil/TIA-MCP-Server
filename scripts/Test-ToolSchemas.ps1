@@ -70,6 +70,7 @@ try {
         hmi_read_event_scripts = @('screen_name')
         hmi_set_event_script = @('screen_name', 'event_type', 'script')
         hmi_set_expression_dynamization = @('screen_name', 'item_name', 'property_name', 'expression', 'result_type')
+        hmi_get_js_type_definitions = @()
     }
     foreach ($toolName in $requiredHmiContracts.Keys) {
         $schemaPath = Join-Path $outputDirectory "$toolName.json"

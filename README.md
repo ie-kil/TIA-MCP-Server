@@ -322,7 +322,7 @@ stateDiagram-v2
 
 ---
 
-## Complete Tools Reference Dictionary (77 Tools)
+## Complete Tools Reference Dictionary (78 Tools)
 
 | # | Tool Name | Category | Primary Parameters | Description |
 |:---:|:---|:---:|:---|:---|
@@ -403,6 +403,7 @@ stateDiagram-v2
 | 75 | `hmi_read_event_scripts` | HMI Logic | `screen_name`, `item_name` (opt) | Read screen or item event scripts and supported event names. |
 | 76 | `hmi_set_event_script` | HMI Logic | `screen_name`, `event_type`, `script`, `item_name` (opt) | Create or update one screen/item event script in place. |
 | 77 | `hmi_set_expression_dynamization` | HMI Logic | `screen_name`, `item_name`, `property_name`, `expression`, `result_type` | Set an expression formula while preserving existing mappings and other dynamizations. |
+| 78 | `hmi_get_js_type_definitions` | HMI Logic | *(none)* | Return the server-bundled, documented subset of WinCC Unified JavaScript declarations. |
 
 ---
 
@@ -564,7 +565,7 @@ Open or create your Antigravity MCP configuration file at:
 *(Replace `C:\\path\\to\\TIA-MCP-Server\\release` with your actual absolute path using escaped backslashes `\\`)*.
 
 #### B. Tool Schema Registration (Lazy Loading)
-To enable Antigravity to lazy-load all 77 tools on demand, copy the JSON schemas from the repository's `schemas/` folder into your Antigravity MCP directory:
+To enable Antigravity to lazy-load all 78 tools on demand, copy the JSON schemas from the repository's `schemas/` folder into your Antigravity MCP directory:
 ```powershell
 New-Item -ItemType Directory -Path "$env:USERPROFILE\.gemini\antigravity\mcp\tia-portal-v21" -Force
 Copy-Item -Path ".\schemas\*.json" -Destination "$env:USERPROFILE\.gemini\antigravity\mcp\tia-portal-v21\" -Force
@@ -612,7 +613,7 @@ Launch Claude Code and check registered tools:
 claude
 > /mcp
 ```
-All 77 tools (`tia_*`, `hmi_*`, `plcsim_*`) will appear in the active MCP tools list. You can immediately ask:
+All 78 tools (`tia_*`, `hmi_*`, `plcsim_*`) will appear in the active MCP tools list. You can immediately ask:
 > *"Inspect the device tree of the active PLC and compile the software."*
 
 ---
@@ -630,7 +631,7 @@ All 77 tools (`tia_*`, `hmi_*`, `plcsim_*`) will appear in the active MCP tools 
   }
 }
 ```
-Restart Claude Desktop. The hammer icon (🛠️) in the input bar will display all 77 tools.
+Restart Claude Desktop. The hammer icon (🛠️) in the input bar will display all 78 tools.
 
 ---
 

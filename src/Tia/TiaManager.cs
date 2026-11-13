@@ -15,7 +15,7 @@ using Siemens.Engineering.SW.Types;
 
 namespace TiaOpennessMcp.Tia
 {
-    public partial class TiaManager : IDisposable
+    public partial class TiaManager : IDisposable, IHmiToolOperations
     {
         private static readonly Lazy<TiaManager> _instance = new Lazy<TiaManager>(() => new TiaManager());
         public static TiaManager Instance => _instance.Value;

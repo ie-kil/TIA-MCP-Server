@@ -12,9 +12,22 @@ namespace TiaOpennessMcp.Tools
         private readonly List<ToolDefinition> _tools = new List<ToolDefinition>();
         private readonly Dictionary<string, Func<JsonElement?, CallToolResult>> _handlers =
             new Dictionary<string, Func<JsonElement?, CallToolResult>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Lazy<IHmiToolOperations> _hmiToolOperations;
 
         public ToolRegistry()
+            : this(new Lazy<IHmiToolOperations>(() => TiaManager.Instance))
         {
+        }
+
+        public ToolRegistry(IHmiToolOperations hmiToolOperations)
+            : this(new Lazy<IHmiToolOperations>(() =>
+                hmiToolOperations ?? throw new ArgumentNullException(nameof(hmiToolOperations))))
+        {
+        }
+
+        private ToolRegistry(Lazy<IHmiToolOperations> hmiToolOperations)
+        {
+            _hmiToolOperations = hmiToolOperations;
             RegisterAllTools();
         }
 
@@ -507,7 +520,7 @@ namespace TiaOpennessMcp.Tools
                     string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
                     string item = GetStringProp(args, "item_name") ?? throw new ArgumentException("item_name is required.");
                     string? target = GetStringProp(args, "target_name");
-                    return CallToolResult.Json(TiaManager.Instance.GetHmiScreenItem(screen, item, target));
+                    return CallToolResult.Json(_hmiToolOperations.Value.GetHmiScreenItem(screen, item, target));
                 });
 
             Register("hmi_update_screen_item", "Update allowlisted screen-item properties in place and verify the resulting item state.",
@@ -547,7 +560,7 @@ namespace TiaOpennessMcp.Tools
                         throw new ArgumentException("item_properties is required.");
                     string? target = GetStringProp(args, "target_name");
                     return CallToolResult.Json(
-                        TiaManager.Instance.UpdateHmiScreenItemProperties(screen, item, properties, target));
+                        _hmiToolOperations.Value.UpdateHmiScreenItemProperties(screen, item, properties, target));
                 });
 
             Register("hmi_read_event_scripts", "Read event scripts and the V21-supported event names for a screen or one screen item.",
@@ -563,7 +576,7 @@ namespace TiaOpennessMcp.Tools
                     string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
                     string? item = GetStringProp(args, "item_name");
                     string? target = GetStringProp(args, "target_name");
-                    return CallToolResult.Json(TiaManager.Instance.GetHmiEventScripts(screen, item, target));
+                    return CallToolResult.Json(_hmiToolOperations.Value.GetHmiEventScripts(screen, item, target));
                 });
 
             Register("hmi_set_event_script", "Create or update one supported screen or item event script in place and verify the script read-back.",
@@ -584,7 +597,22 @@ namespace TiaOpennessMcp.Tools
                     string? item = GetStringProp(args, "item_name");
                     string? target = GetStringProp(args, "target_name");
                     return CallToolResult.Json(
-                        TiaManager.Instance.UpdateHmiEventScript(screen, eventType, script, item, target));
+                        _hmiToolOperations.Value.UpdateHmiEventScript(screen, eventType, script, item, target));
+                });
+
+            Register("hmi_get_js_type_definitions", "Get the server-bundled, documented subset of WinCC Unified runtime JavaScript type declarations. This is not a complete Siemens declaration set.",
+                schema => { },
+                args =>
+                {
+                    const string resourceUri = "tia://docs/hmi-javascript-type-definitions";
+                    ResourceContent definition = McpResourceCatalog.Read(resourceUri).Contents[0];
+                    return CallToolResult.Json(new
+                    {
+                        ResourceUri = resourceUri,
+                        MimeType = definition.MimeType,
+                        Scope = "Documented subset; not a complete or vendor-generated Siemens V21 declaration set.",
+                        Definitions = definition.Text
+                    });
                 });
 
             Register("hmi_export_json", "Export a Unified HMI target as a versioned JSON directory containing screens, tag tables, alarms, optional styles, and file hashes.",
@@ -1082,7 +1110,7 @@ namespace TiaOpennessMcp.Tools
                     string resultType = GetStringProp(args, "result_type") ?? throw new ArgumentException("result_type is required.");
                     string onConflict = GetStringProp(args, "on_conflict") ?? "fail";
                     string? target = GetStringProp(args, "target_name");
-                    return CallToolResult.Json(TiaManager.Instance.SetExpressionDynamization(
+                    return CallToolResult.Json(_hmiToolOperations.Value.SetExpressionDynamization(
                         screen, item, property, expression, resultType, onConflict, target));
                 });
 
