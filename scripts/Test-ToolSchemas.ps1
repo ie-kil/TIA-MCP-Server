@@ -70,6 +70,7 @@ try {
         hmi_read_event_scripts = @('screen_name')
         hmi_set_event_script = @('screen_name', 'event_type', 'script')
         hmi_set_expression_dynamization = @('screen_name', 'item_name', 'property_name', 'expression', 'result_type')
+        hmi_set_expression_dynamization_entries = @('screen_name', 'item_name', 'property_name', 'entries')
         hmi_get_js_type_definitions = @()
     }
     foreach ($toolName in $requiredHmiContracts.Keys) {
@@ -96,6 +97,14 @@ try {
     $expressionSchema = Get-Content -LiteralPath (Join-Path $outputDirectory 'hmi_set_expression_dynamization.json') -Raw | ConvertFrom-Json
     if ($expressionSchema.parameters.properties.on_conflict.enum -notcontains 'replace') {
         throw "hmi_set_expression_dynamization must expose explicit conflict handling."
+    }
+    $expressionEntriesSchema = Get-Content -LiteralPath (Join-Path $outputDirectory 'hmi_set_expression_dynamization_entries.json') -Raw | ConvertFrom-Json
+    if ($expressionEntriesSchema.parameters.properties.entries.items.properties.condition.type -ne 'string' -or
+        $expressionEntriesSchema.parameters.properties.entries.items.properties.value.properties.type.type -ne 'string' -or
+        $expressionEntriesSchema.parameters.properties.entries.items.properties.value.properties.value.type -ne 'string' -or
+        $expressionEntriesSchema.parameters.properties.entries.items.additionalProperties -ne $false -or
+        $expressionEntriesSchema.parameters.properties.entries.items.properties.value.additionalProperties -ne $false) {
+        throw 'hmi_set_expression_dynamization_entries must define strict condition and typed-value row objects.'
     }
     $sclImportSchema = Get-Content -LiteralPath (Join-Path $outputDirectory 'tia_import_scl_block.json') -Raw | ConvertFrom-Json
     if ('scl_code' -notin $sclImportSchema.parameters.required) {

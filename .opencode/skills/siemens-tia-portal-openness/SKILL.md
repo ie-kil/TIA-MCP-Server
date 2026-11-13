@@ -159,6 +159,26 @@ single-entry editor.
 }
 ```
 
+For WinCC Unified Expressions-tab condition/value tables, use
+**`hmi_set_expression_dynamization_entries`**. Supply the complete ordered row
+list; each row contains a non-empty `condition` expression and a typed `value`
+whose type matches the target property. This replaces all rows for that
+property, so use `on_conflict: "replace"` if any dynamization already exists
+there. The tool preserves the property's default value and all unrelated
+dynamizations, then verifies the ordered readback. TIA expression syntax is not
+validated by the MCP tool, and it does not save or compile the project.
+```json
+{
+  "screen_name": "Screen_2",
+  "item_name": "btn_Position",
+  "property_name": "Top",
+  "entries": [
+    { "condition": "AND32('StatusWord', 1) != 0", "value": { "type": "Int32", "value": "500" } },
+    { "condition": "AND32('StatusWord', 2) != 0", "value": { "type": "Int32", "value": "400" } }
+  ]
+}
+```
+
 To remove only one item's dynamization for a property, use
 **`hmi_delete_dynamization`** with the screen, item, property, and optional HMI
 target. It preserves the item and all unrelated dynamizations, verifies that the

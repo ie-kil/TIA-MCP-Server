@@ -139,6 +139,17 @@ internal static class HmiToolBehaviorTests
             fake.ResultType == "Int32" && fake.OnConflict == "replace",
             "expression update forwards formula, declared type, and conflict policy");
 
+        CallToolResult expressionEntriesResult = registry.Execute(
+            "hmi_set_expression_dynamization_entries",
+            Arguments("{\"screen_name\":\"Main\",\"item_name\":\"btn_Start\",\"property_name\":\"Top\",\"entries\":[{\"condition\":\"mask 1\",\"value\":{\"type\":\"Int32\",\"value\":\"500\"}},{\"condition\":\"mask 2\",\"value\":{\"type\":\"Int32\",\"value\":\"400\"}}],\"on_conflict\":\"replace\",\"target_name\":\"HMI_RT\"}"));
+        Check(!expressionEntriesResult.IsError && fake.LastOperation == "set-expression-entries",
+            "expression condition rows dispatch to the HMI operations backend");
+        Check(fake.ScreenName == "Main" && fake.ItemName == "btn_Start" &&
+            fake.PropertyName == "Top" && fake.OnConflict == "replace" &&
+            fake.TargetName == "HMI_RT" && fake.ExpressionEntries.GetArrayLength() == 2 &&
+            fake.ExpressionEntries[0].GetProperty("value").GetProperty("value").GetString() == "500",
+            "expression condition rows preserve order, values, and target arguments");
+
         CallToolResult deleteDynamizationResult = registry.Execute(
             "hmi_delete_dynamization",
             Arguments("{\"screen_name\":\"Main\",\"item_name\":\"btn_Start\",\"property_name\":\"BackColor\",\"target_name\":\"HMI_RT\"}"));
@@ -172,6 +183,7 @@ internal static class HmiToolBehaviorTests
 
         TestItemPropertyConversion();
         TestManagerInputGuards();
+        TestExpressionMappingEntryParsing();
     }
 
     private static void TestItemPropertyConversion()
@@ -215,6 +227,40 @@ internal static class HmiToolBehaviorTests
         Throws<InvalidDataException>(
             () => manager.SetExpressionDynamization("Main", "Button", "Top", "1", "NotAType"),
             "expression update rejects unsupported result types before project access");
+        Throws<InvalidDataException>(
+            () => manager.SetExpressionDynamizationEntries(
+                "Main", "Button", "Top", JsonValue("[]")),
+            "expression condition update rejects an empty row list before project access");
+    }
+
+    private static void TestExpressionMappingEntryParsing()
+    {
+        object parsed = InvokeManagerHelperResult(
+            "BuildExpressionMappingEntries",
+            JsonValue("[{\"condition\":\"bit 0\",\"value\":{\"type\":\"Int32\",\"value\":\"500\"}},{\"condition\":\"bit 1\",\"value\":{\"type\":\"Int32\",\"value\":\"400\"}}]"),
+            typeof(int));
+        using (JsonDocument document = JsonDocument.Parse(JsonSerializer.Serialize(parsed)))
+        {
+            JsonElement entries = document.RootElement;
+            Check(entries.GetArrayLength() == 2 &&
+                entries[0].GetProperty("Condition").GetString() == "bit 0" &&
+                entries[0].GetProperty("Value").GetProperty("Value").GetInt32() == 500 &&
+                entries[1].GetProperty("Condition").GetString() == "bit 1" &&
+                entries[1].GetProperty("Value").GetProperty("Value").GetInt32() == 400,
+                "expression condition entries retain row order and parse typed values");
+        }
+        Throws<InvalidDataException>(
+            () => InvokeManagerHelperResult(
+                "BuildExpressionMappingEntries",
+                JsonValue("[{\"condition\":\" \",\"value\":{\"type\":\"Int32\",\"value\":\"500\"}}]"),
+                typeof(int)),
+            "expression condition entries reject blank conditions");
+        Throws<InvalidDataException>(
+            () => InvokeManagerHelperResult(
+                "BuildExpressionMappingEntries",
+                JsonValue("[{\"condition\":\"bit 0\",\"value\":{\"type\":\"Boolean\",\"value\":\"true\"}}]"),
+                typeof(int)),
+            "expression condition entries reject values with the wrong target type");
     }
 
     private static void InvokeManagerHelper(string name, params object[] arguments)
@@ -222,6 +268,19 @@ internal static class HmiToolBehaviorTests
         try
         {
             typeof(TiaManager).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static)
+                .Invoke(null, arguments);
+        }
+        catch (TargetInvocationException error)
+        {
+            throw error.InnerException;
+        }
+    }
+
+    private static object InvokeManagerHelperResult(string name, params object[] arguments)
+    {
+        try
+        {
+            return typeof(TiaManager).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static)
                 .Invoke(null, arguments);
         }
         catch (TargetInvocationException error)
@@ -280,6 +339,7 @@ internal static class HmiToolBehaviorTests
         public string ScriptCode = "";
         public string PropertyName = "";
         public string Expression = "";
+        public JsonElement ExpressionEntries;
         public string ResultType = "";
         public string OnConflict = "";
 
@@ -370,6 +430,21 @@ internal static class HmiToolBehaviorTests
             ResultType = resultType;
             OnConflict = onConflict;
             return new { propertyName, expression, resultType, onConflict };
+        }
+
+        public object SetExpressionDynamizationEntries(
+            string screenName,
+            string itemName,
+            string propertyName,
+            JsonElement entries,
+            string onConflict = "fail",
+            string targetName = null)
+        {
+            Record("set-expression-entries", screenName, itemName, targetName);
+            PropertyName = propertyName;
+            ExpressionEntries = entries.Clone();
+            OnConflict = onConflict;
+            return new { propertyName, entries = entries.Clone(), onConflict };
         }
 
         private void Record(string operation, string screenName, string itemName, string targetName)

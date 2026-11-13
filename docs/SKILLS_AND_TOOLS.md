@@ -1,7 +1,7 @@
 # Siemens TIA Portal V21 Openness MCP Server
 ## Complete Skills & Tools Reference Manual
 
-**Version:** 2.3.0
+**Version:** 2.4.0
 **Target Platform:** Siemens TIA Portal V21 (PublicAPI .NET Framework 4.8 x64)  
 **Supported Transports:** HTTP JSON-RPC 2.0, Server-Sent Events (SSE), stdio MCP  
 **Default Endpoints:** `http://localhost:5001/mcp`, `http://localhost:5001/sse`, `http://localhost:5001/status`
@@ -117,6 +117,7 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
   - `tia_import_block` / `tia_import_scl_block` - `hmi_set_tag_dynamization`
          │                                 - `hmi_read_event_scripts` / `hmi_set_event_script`
          │                                 - `hmi_set_expression_dynamization`
+         │                                 - `hmi_set_expression_dynamization_entries`
          │                                 - `hmi_get_js_type_definitions`
          │                                 - `hmi_update_button_scripts`
          ▼                                        │
@@ -338,7 +339,7 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
   - `target_name` *(string, optional)*: HMI software name.
 - **Returns:** Array of objects with `Left`, `Top`, `Width`, `Height`, `BackColor`, `BorderColor`, `Text`, `TappedScript`, and `Dynamizations`.
 
-For complete supported state on one item, use `hmi_get_screen_item`. To update its allowlisted properties without replacing the item, use `hmi_update_screen_item`. Use `hmi_read_event_scripts` / `hmi_set_event_script` for supported screen or item events, and `hmi_set_expression_dynamization` for an expression formula update that preserves existing mapping entries and other dynamizations. These direct updates verify readback and do not save the project.
+For complete supported state on one item, use `hmi_get_screen_item`. To update its allowlisted properties without replacing the item, use `hmi_update_screen_item`. Use `hmi_read_event_scripts` / `hmi_set_event_script` for supported screen or item events. Use `hmi_set_expression_dynamization` to update an expression formula while preserving mapping rows, or `hmi_set_expression_dynamization_entries` to replace the ordered Expressions-tab condition/value rows for one property. The latter requires explicit `on_conflict: "replace"` when a same-property dynamization already exists. Both direct updates verify readback and do not save the project.
 
 Use `hmi_get_js_type_definitions` or the read-only resource `tia://docs/hmi-javascript-type-definitions` for the server-bundled TypeScript declaration subset. It documents only runtime APIs referenced by this server; it is not a complete Siemens-generated V21 API definition and omits unverified tag-read and direct item-object access APIs.
 

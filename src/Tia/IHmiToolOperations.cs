@@ -33,6 +33,14 @@ namespace TiaOpennessMcp.Tia
             string onConflict = "fail",
             string? targetName = null);
 
+        object SetExpressionDynamizationEntries(
+            string screenName,
+            string itemName,
+            string propertyName,
+            JsonElement entries,
+            string onConflict = "fail",
+            string? targetName = null);
+
         object DeleteHmiDynamization(
             string screenName,
             string itemName,

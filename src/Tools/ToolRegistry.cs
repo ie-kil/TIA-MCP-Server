@@ -1177,6 +1177,68 @@ namespace TiaOpennessMcp.Tools
                         screen, item, property, expression, resultType, onConflict, target));
                 });
 
+            Register("hmi_set_expression_dynamization_entries", "Replace the ordered condition/value rows of one expression dynamization in place and verify the read-back.",
+                schema =>
+                {
+                    schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Target screen." };
+                    schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Target screen item." };
+                    schema.Properties["property_name"] = new ToolProperty { Type = "string", Description = "Property whose Expressions-tab condition rows to set, such as Top or Visible." };
+                    schema.Properties["entries"] = new ToolProperty
+                    {
+                        Type = "array",
+                        Description = "Non-empty, ordered list of Boolean condition expressions and mapped property values. Replaces all rows for this property.",
+                        Items = new ToolProperty
+                        {
+                            Type = "object",
+                            Properties = new Dictionary<string, ToolProperty>
+                            {
+                                ["condition"] = new ToolProperty { Type = "string", Description = "WinCC Unified condition expression; its syntax is validated by TIA, not this tool." },
+                                ["value"] = new ToolProperty
+                                {
+                                    Type = "object",
+                                    Properties = new Dictionary<string, ToolProperty>
+                                    {
+                                        ["type"] = new ToolProperty
+                                        {
+                                            Type = "string",
+                                            Description = "Typed mapped value; must match the target property's CLR type.",
+                                            Enum = new List<string> { "Boolean", "Color", "String", "Byte", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Single", "Double", "Decimal" }
+                                        },
+                                        ["value"] = new ToolProperty { Type = "string", Description = "Mapped value encoded as text (for example \"500\", \"true\", or \"#00FF00\")." }
+                                    },
+                                    Required = new List<string> { "type", "value" },
+                                    AdditionalProperties = false
+                                }
+                            },
+                            Required = new List<string> { "condition", "value" },
+                            AdditionalProperties = false
+                        }
+                    };
+                    schema.Properties["on_conflict"] = new ToolProperty
+                    {
+                        Type = "string",
+                        Description = "Whether an existing dynamization on this property may be replaced (default: fail).",
+                        Enum = new List<string> { "fail", "replace" },
+                        Default = "fail"
+                    };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software name (optional)." };
+                    schema.Required = new List<string> { "screen_name", "item_name", "property_name", "entries" };
+                },
+                args =>
+                {
+                    string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
+                    string item = GetStringProp(args, "item_name") ?? throw new ArgumentException("item_name is required.");
+                    string property = GetStringProp(args, "property_name") ?? throw new ArgumentException("property_name is required.");
+                    if (!args.HasValue || args.Value.ValueKind != JsonValueKind.Object ||
+                        !args.Value.TryGetProperty("entries", out JsonElement entries) ||
+                        entries.ValueKind != JsonValueKind.Array)
+                        throw new ArgumentException("entries must be an array.");
+                    string onConflict = GetStringProp(args, "on_conflict") ?? "fail";
+                    string? target = GetStringProp(args, "target_name");
+                    return CallToolResult.Json(_hmiToolOperations.Value.SetExpressionDynamizationEntries(
+                        screen, item, property, entries.Clone(), onConflict, target));
+                });
+
             // 33. hmi_update_button_scripts
             Register("hmi_update_button_scripts", "Update button scripts in place on a screen matching text search/replace or list of button names without deleting items.",
                 schema =>

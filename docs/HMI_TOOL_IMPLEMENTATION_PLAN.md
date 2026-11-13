@@ -77,14 +77,40 @@ error-handling patterns and specify how existing state is preserved.
 
 ### 5. Implement expression dynamization operations
 
-- Add create, update, and full-read support for expression dynamizations only
-  where the V21 API is verified.
-- Preserve existing tag, Singlebit, Range, bitmask, and other dynamization
-  entries when editing one entry.
-- Validate target property, expression text, and expression result type.
+- Keep the existing `hmi_set_expression_dynamization` formula operation
+  separate. It sets `ValueConverter.Formula` and `IsFormulaSelected`; it does
+  not write the Expressions-tab condition/value rows shown in TIA.
+- Implemented `hmi_set_expression_dynamization_entries` as a separate
+  ordered-entry writer. It sets `ConditionType.Expression`, uses simple
+  condition rows with typed values, and leaves formula mode disabled. The
+  existing default property value is not modified.
+- The readback of `UCS_Btn_1.Top` on `Main_UnitControlSideBar` confirmed the V21
+  Openness representation used by the writer: `ConditionType.Expression`,
+  simple mapping entries whose condition is expression text, and typed mapped
+  values. A live write still needs validation on a disposable HMI item.
+- Treat the supplied ordered list as an explicit replacement of the target
+  property's condition rows. Require an explicit replacement opt-in when an
+  existing tag or expression dynamization would be replaced. Preserve every
+  unrelated dynamization, event script, item property, and item identity.
+- Validate the row list before mutation: non-empty condition text, supported
+  target property and value type, Boolean condition semantics where the API
+  exposes them, and valid row ordering. The tool cannot claim Siemens
+  expression syntax is valid unless the V21 API provides a validator.
+- Apply the table change transactionally, then read the item back and compare
+  the ordered conditions and typed values exactly. Include the current
+  condition/value entries in `hmi_get_screen_item` readback; keep
+  `hmi_get_screen_items` as the summary view.
 - Use `hmi_patch_json` only if its existing guards and operation schema are
-  proven to preserve the same invariants; otherwise implement a direct
-  Openness path.
+  proven to support condition rows and preserve the same invariants;
+  otherwise implement a direct Openness path. Keep the formula setter's
+  existing contract backward-compatible.
+
+**Focused verification:** On an authorized disposable HMI item, verify a
+`Top` condition table with two ordered Boolean conditions and integer values
+(for example, 500 and 400), and confirm its default `Top` value is unchanged.
+Also verify empty conditions, incorrect value types, conflict handling,
+readback order, and preservation of unrelated dynamizations. Live TIA
+validation, compilation, and saving require separate authorization.
 
 ### 6. Test, document, and version
 
