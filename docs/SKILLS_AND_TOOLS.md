@@ -437,6 +437,12 @@ Use `hmi_get_js_type_definitions` or the read-only resource `tia://docs/hmi-java
   - `new_flashing_rate` *(string, optional)*: TIA flashing rate enum name.
   - `target_name` *(string, optional)*: Target HMI software.
 
+#### `hmi_delete_dynamization`
+- **Description:** Delete only one item's dynamization for a selected property. The screen item and its other dynamizations are preserved; the operation is verified and does not save the project.
+- **Input Parameters:**
+  - `screen_name`, `item_name`, `property_name` *(string, required)*: Identify the screen item and the dynamized property to remove.
+  - `target_name` *(string, optional)*: Target HMI software.
+
 #### 31. `hmi_update_button_scripts`
 - **Description:** Modify button event scripts **in-place** without deleting items. Supports substring search/replace or unconditional script setting, running Openness JavaScript syntax checking.
 - **Input Parameters:**

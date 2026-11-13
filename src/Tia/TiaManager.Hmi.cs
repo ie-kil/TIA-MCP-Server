@@ -887,6 +887,52 @@ namespace TiaOpennessMcp.Tia
             return $"Dynamization on '{itemName}.{propertyName}' linked to '{tagName}' successfully.";
         }
 
+        public object DeleteHmiDynamization(
+            string screenName,
+            string itemName,
+            string propertyName,
+            string? targetName = null)
+        {
+            if (string.IsNullOrWhiteSpace(screenName))
+                throw new ArgumentException("screen_name must not be empty.", nameof(screenName));
+            if (string.IsNullOrWhiteSpace(itemName))
+                throw new ArgumentException("item_name must not be empty.", nameof(itemName));
+            if (string.IsNullOrWhiteSpace(propertyName))
+                throw new ArgumentException("property_name must not be empty.", nameof(propertyName));
+
+            var hmiSw = FindHmiSoftware(targetName);
+            var screen = FindHmiScreen(hmiSw, screenName);
+            if (screen == null) throw new InvalidOperationException($"Screen '{screenName}' not found.");
+
+            var item = screen.ScreenItems.Find(itemName);
+            if (item == null) throw new InvalidOperationException($"Item '{itemName}' not found on screen '{screenName}'.");
+
+            using (ExclusiveAccess access = _tiaPortal!.ExclusiveAccess("Delete Unified HMI dynamization"))
+            using (Transaction transaction = access.Transaction(_project!, "Delete Unified HMI dynamization"))
+            {
+                DynamizationBase? dynamization = item.Dynamizations.Find(propertyName);
+                if (dynamization == null)
+                    throw new InvalidOperationException(
+                        $"Dynamization for '{itemName}.{propertyName}' was not found on screen '{screenName}'.");
+
+                string dynamizationType = dynamization.GetType().Name;
+                dynamization.Delete();
+                if (item.Dynamizations.Find(propertyName) != null)
+                    throw new InvalidOperationException(
+                        $"Dynamization for '{itemName}.{propertyName}' remained after deletion.");
+
+                transaction.CommitOnDispose();
+                return new
+                {
+                    screenName,
+                    itemName,
+                    propertyName,
+                    dynamizationType,
+                    deleted = true
+                };
+            }
+        }
+
         private static int GetSingleBitState(HmiRangeEntryInput range)
         {
             double from = Convert.ToDouble(range.From, CultureInfo.InvariantCulture);

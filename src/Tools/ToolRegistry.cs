@@ -1027,6 +1027,25 @@ namespace TiaOpennessMcp.Tools
                     return CallToolResult.Text(res);
                 });
 
+            Register("hmi_delete_dynamization", "Delete one dynamization from a screen item property in place, preserving the item and its other dynamizations.",
+                schema =>
+                {
+                    schema.Properties["screen_name"] = new ToolProperty { Type = "string", Description = "Target screen." };
+                    schema.Properties["item_name"] = new ToolProperty { Type = "string", Description = "Target screen item name." };
+                    schema.Properties["property_name"] = new ToolProperty { Type = "string", Description = "Property whose dynamization to delete, such as BackColor." };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Target HMI software name (optional)." };
+                    schema.Required = new List<string> { "screen_name", "item_name", "property_name" };
+                },
+                args =>
+                {
+                    string screen = GetStringProp(args, "screen_name") ?? throw new ArgumentException("screen_name is required.");
+                    string item = GetStringProp(args, "item_name") ?? throw new ArgumentException("item_name is required.");
+                    string property = GetStringProp(args, "property_name") ?? throw new ArgumentException("property_name is required.");
+                    string? target = GetStringProp(args, "target_name");
+                    return CallToolResult.Json(_hmiToolOperations.Value.DeleteHmiDynamization(
+                        screen, item, property, target));
+                });
+
             // Update one existing converter entry without recreating the dynamization.
             Register("hmi_update_dynamization_entry", "Update the value, alternate value, or flashing settings of one existing tag or expression dynamization mapping entry.",
                 schema =>

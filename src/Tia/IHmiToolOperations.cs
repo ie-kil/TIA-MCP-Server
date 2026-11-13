@@ -32,5 +32,11 @@ namespace TiaOpennessMcp.Tia
             string resultType,
             string onConflict = "fail",
             string? targetName = null);
+
+        object DeleteHmiDynamization(
+            string screenName,
+            string itemName,
+            string propertyName,
+            string? targetName = null);
     }
 }

@@ -183,8 +183,10 @@ Conventions:
 - TIA may generate Singlebit entries when the condition type is assigned, even if an
   initial Openness collection read appears empty. If a setter call fails, assume the
   in-memory object may have been partially changed: inspect it before retrying. Do not
-  blindly call the setter again or use `condition_type: "None"` as a reset; that path
-  does not explicitly clear an existing converter.
+  blindly call the setter again or use `condition_type: "None"` as a reset.
+- Use `hmi_delete_dynamization` to remove one dynamization directly by screen, item,
+  and property. It preserves other dynamizations and the item, verifies the deletion,
+  and leaves the project unsaved.
 - If a tool documented here is missing from the live MCP tool list, refresh or reconnect
   the client and verify its configured server endpoint before concluding the tool is
   unavailable. Do not substitute a whole-mapping setter for an in-place entry update.

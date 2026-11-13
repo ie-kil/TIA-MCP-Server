@@ -139,6 +139,16 @@ internal static class HmiToolBehaviorTests
             fake.ResultType == "Int32" && fake.OnConflict == "replace",
             "expression update forwards formula, declared type, and conflict policy");
 
+        CallToolResult deleteDynamizationResult = registry.Execute(
+            "hmi_delete_dynamization",
+            Arguments("{\"screen_name\":\"Main\",\"item_name\":\"btn_Start\",\"property_name\":\"BackColor\",\"target_name\":\"HMI_RT\"}"));
+        Check(!deleteDynamizationResult.IsError && fake.LastOperation == "delete-dynamization",
+            "dynamization deletion dispatches to the HMI operations backend");
+        Check(fake.ScreenName == "Main" && fake.ItemName == "btn_Start" &&
+            fake.PropertyName == "BackColor" && fake.TargetName == "HMI_RT" &&
+            FirstText(deleteDynamizationResult).Contains("\"deleted\": true"),
+            "dynamization deletion forwards its exact target and returns the backend result");
+
         int callsBeforeInvalidInput = fake.CallCount;
         CallToolResult invalidResult;
         string invalidInputLog;
@@ -272,6 +282,17 @@ internal static class HmiToolBehaviorTests
         public string Expression = "";
         public string ResultType = "";
         public string OnConflict = "";
+
+        public object DeleteHmiDynamization(
+            string screenName,
+            string itemName,
+            string propertyName,
+            string targetName = null)
+        {
+            Record("delete-dynamization", screenName, itemName, targetName);
+            PropertyName = propertyName;
+            return new { screenName, itemName, propertyName, dynamizationType = "TagDynamization", deleted = true };
+        }
 
         public object GetHmiScreenItem(string screenName, string itemName, string targetName = null)
         {

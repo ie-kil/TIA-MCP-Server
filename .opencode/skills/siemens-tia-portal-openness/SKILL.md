@@ -158,6 +158,12 @@ single-entry editor.
 }
 ```
 
+To remove only one item's dynamization for a property, use
+**`hmi_delete_dynamization`** with the screen, item, property, and optional HMI
+target. It preserves the item and all unrelated dynamizations, verifies that the
+selected dynamization is gone, and does not save the project. Do not use
+`hmi_set_tag_dynamization` with `condition_type: "None"` as a reset.
+
 For a direct dynamization edit, check `tia_get_status` and identify the HMI target
 first. Read the screen with `hmi_get_screen_items` before editing, verify the item,
 property, existing tag, condition type, and mapping entry index, then apply the
