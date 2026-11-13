@@ -97,6 +97,30 @@ try {
     if ($expressionSchema.parameters.properties.on_conflict.enum -notcontains 'replace') {
         throw "hmi_set_expression_dynamization must expose explicit conflict handling."
     }
+    $sclImportSchema = Get-Content -LiteralPath (Join-Path $outputDirectory 'tia_import_scl_block.json') -Raw | ConvertFrom-Json
+    if ('scl_code' -notin $sclImportSchema.parameters.required) {
+        throw 'tia_import_scl_block must require the complete SCL source string.'
+    }
+    if ($sclImportSchema.parameters.properties.compile_after_import.default -ne $true) {
+        throw 'tia_import_scl_block.compile_after_import must default to true.'
+    }
+    if ($sclImportSchema.parameters.properties.open_after_import.default -ne $false) {
+        throw 'tia_import_scl_block.open_after_import must default to false.'
+    }
+    $checkedSclImportSchema = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\schemas\tia_import_scl_block.json') -Raw | ConvertFrom-Json
+    if ($checkedSclImportSchema.description -ne $sclImportSchema.description) {
+        throw 'Checked-in tia_import_scl_block description differs from the exported tool schema.'
+    }
+    foreach ($propertyName in @('scl_code', 'plc_name', 'folder', 'compile_after_import', 'open_after_import')) {
+        $exportedProperty = $sclImportSchema.parameters.properties.$propertyName
+        $checkedProperty = $checkedSclImportSchema.parameters.properties.$propertyName
+        if ($null -eq $checkedProperty -or
+            $checkedProperty.type -ne $exportedProperty.type -or
+            $checkedProperty.description -ne $exportedProperty.description -or
+            $checkedProperty.default -ne $exportedProperty.default) {
+            throw "Checked-in tia_import_scl_block.$propertyName differs from the exported tool schema."
+        }
+    }
 
     Write-Output "PASS: $($files.Count) tool schemas; $arrayCount typed array parameters; checked-in schemas match."
 }

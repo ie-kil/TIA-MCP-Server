@@ -14,7 +14,7 @@
 | :---: | :--- | :---: | :--- |
 | **1** | [Connection & Session Management](#category-1-connection--session-management-8-tools) | 8 | `tia_get_status`, `tia_list_processes`, `tia_connect`, `tia_disconnect`, `tia_get_project_info`, `tia_open_project`, `tia_save_project`, `tia_close_project` |
 | **2** | [Hardware & Device Topology](#category-2-hardware--device-topology-2-tools) | 2 | `tia_list_devices`, `tia_get_device_tree` |
-| **3** | [PLC Software, Blocks & Compilation](#category-3-plc-software-blocks--compilation-9-tools) | 9 | `tia_list_plcs`, `tia_list_blocks`, `tia_get_block_code`, `tia_import_block`, `tia_delete_block`, `tia_list_plc_types`, `tia_get_plc_type`, `tia_import_plc_type`, `tia_compile` |
+| **3** | [PLC Software, Blocks & Compilation](#category-3-plc-software-blocks--compilation-10-tools) | 10 | `tia_list_plcs`, `tia_list_blocks`, `tia_get_block_code`, `tia_import_block`, `tia_import_scl_block`, `tia_delete_block`, `tia_list_plc_types`, `tia_get_plc_type`, `tia_import_plc_type`, `tia_compile` |
 | **4** | [WinCC Unified HMI Engineering](#category-4-wincc-unified-hmi-screen--widget-engineering-46-tools) | 46 | `hmi_list_targets`, `hmi_list_screens`, `hmi_create_screen`, `hmi_delete_screen`, `hmi_get_screen_items`, `hmi_get_screen_item`, `hmi_update_screen_item`, `hmi_read_event_scripts`, `hmi_set_event_script`, `hmi_delete_screen_items`, `hmi_add_label`, `hmi_add_button`, `hmi_add_toggle_switch`, `hmi_add_shape`, `hmi_add_io_field`, `hmi_set_tag_dynamization`, `hmi_delete_dynamization`, `hmi_update_dynamization_entry`, `hmi_set_expression_dynamization`, `hmi_get_js_type_definitions`, `hmi_update_button_scripts`, `hmi_list_tag_tables`, `hmi_list_tags`, `hmi_create_tag`, `hmi_create_discrete_alarm`, `hmi_update_tag_acquisition_cycles`, `hmi_set_tag_range`, `hmi_create_data_log`, `hmi_assign_logging_tags`, `hmi_list_connections`, `hmi_create_connection`, `hmi_delete_connection`, `hmi_list_text_lists`, `hmi_create_text_list`, `hmi_delete_text_list`, `hmi_export_text_lists`, `hmi_compile`, `tia_list_tag_tables`, `tia_get_tags`, `hmi_export_json`, `hmi_read_export_file`, `hmi_begin_import`, `hmi_upload_import_file`, `hmi_import_json`, `hmi_patch_json`, `hmi_render_json` |
 | **5** | [Siemens TestSuite Automation](#category-5-siemens-testsuite-automation-2-tools) | 2 | `tia_testsuite_list_tests`, `tia_testsuite_load_test` |
 | **6** | [S7-PLCSIM Advanced Live Simulation & Testing](#category-6-s7-plcsim-advanced-live-simulation--testing-12-tools) | 12 | `plcsim_list_instances`, `plcsim_connect`, `plcsim_disconnect`, `plcsim_get_status`, `plcsim_set_operating_state`, `plcsim_set_scale_factor`, `plcsim_read_tag`, `plcsim_write_tag`, `plcsim_read_tags`, `plcsim_write_tags`, `plcsim_run_sequence`, `plcsim_run_mixing_sequence` |
@@ -205,7 +205,7 @@ The bundled Openness assemblies cover authoring APIs, not the complete WinCC Uni
 
 ---
 
-## Category 3: PLC Software, Blocks & Compilation (9 Tools)
+## Category 3: PLC Software, Blocks & Compilation (10 Tools)
 
 ### 11. `tia_list_plcs`
 - **Description:** Lists all PLCs with block counts, UDT counts, and tag table counts.
@@ -288,6 +288,19 @@ The bundled Openness assemblies cover authoring APIs, not the complete WinCC Uni
   | `overwrite` | boolean | No | `true` | Overwrite existing block. |
   | `plc_name` | string | No | null | Target PLC name. |
   | `folder` | string | No | null | Subfolder inside Program Blocks. |
+
+---
+
+### 14a. `tia_import_scl_block`
+- **Description:** Imports a complete SCL source for one PLC block. When a block with the same name exists, it is backed up, deleted, and replaced; a failed import attempts to restore the backup. This is whole-block replacement, not an in-place edit. Compilation defaults to enabled; compilation errors are returned and do not roll back the import.
+- **Parameters:**
+  | Parameter | Type | Required | Default | Description |
+  | :--- | :---: | :---: | :---: | :--- |
+  | `scl_code` | string | **Yes** | — | Complete source for exactly one `FUNCTION`, `FUNCTION_BLOCK`, `ORGANIZATION_BLOCK`, or `DATA_BLOCK`. |
+  | `plc_name` | string | No | null | Target PLC name. |
+  | `folder` | string | No | null | Existing PLC block group path; when omitted, preserves the existing block's group or uses the root group for a new block. |
+  | `compile_after_import` | boolean | No | `true` | Compile the target PLC after generation. Compilation errors do not trigger rollback. |
+  | `open_after_import` | boolean | No | `false` | Open the imported block in the TIA Portal editor. |
 
 ---
 

@@ -4,13 +4,13 @@
 [![Simulation](https://img.shields.io/badge/Simulation-S7--PLCSIM%20Advanced%20V8.0-008080.svg)](https://support.industry.siemens.com)
 [![Protocol](https://img.shields.io/badge/MCP-2024--11--05-blue.svg)](https://modelcontextprotocol.io)
 [![Runtime](https://img.shields.io/badge/.NET%20Framework-4.8%20x64-512BD4.svg)](https://dotnet.microsoft.com)
-[![Version](https://img.shields.io/badge/Version-v2.2.0-blue.svg)](#version-history--bug-fixes)
-[![Tools](https://img.shields.io/badge/Tools-77%20Registered-brightgreen.svg)](#complete-tools-reference-dictionary-77-tools)
+[![Version](https://img.shields.io/badge/Version-v2.3.0-blue.svg)](#version-history--bug-fixes)
+[![Tools](https://img.shields.io/badge/Tools-80%20Registered-brightgreen.svg)](#complete-tools-reference-dictionary-79-tools)
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
 
 A high-performance, persistent **Model Context Protocol (MCP)** server providing AI coding agents (such as **Google Antigravity**, **Claude Desktop**, **Cursor**, and **VS Code**) with direct programmatic control over **Siemens TIA Portal V21** and **S7-PLCSIM Advanced V8.0**.
 
-Equipped with **77 specialized industrial automation tools**, this server bridges generative AI with deterministic industrial hardware and software—enabling automated PLC logic authoring, model-based architecture ingestion (Draw.io / PlantUML / Mermaid), automated design-to-HMI pipelines (Figma to WinCC Unified), live simulation memory I/O, and automated Hardware-in-the-Loop (HIL) sequence verification with telemetry report generation.
+Equipped with **80 specialized industrial automation tools**, this server bridges generative AI with deterministic industrial hardware and software—enabling automated PLC logic authoring, model-based architecture ingestion (Draw.io / PlantUML / Mermaid), automated design-to-HMI pipelines (Figma to WinCC Unified), live simulation memory I/O, and automated Hardware-in-the-Loop (HIL) sequence verification with telemetry report generation.
 
 ---
 
@@ -69,7 +69,7 @@ flowchart TD
     subgraph SERVER["⚡ TiaOpennessMcp Server (Persistent Daemon)"]
         TransportStdio["MCP stdio Handler<br/>Framing & JSON-RPC"]
         TransportHttp["HTTP / SSE Engine<br/>Port 5001"]
-        ToolRegistry["Tool Registry<br/>77 Industrial Automation Tools"]
+        ToolRegistry["Tool Registry<br/>80 Industrial Automation Tools"]
         TiaMgr["TiaManager (Singleton)<br/>Openness COM Bridge"]
         PlcSimMgr["PlcSimManager (Singleton)<br/>PLCSIM API V8.0 Bridge"]
     end
@@ -109,10 +109,10 @@ flowchart TD
     PlcSimMgr --> SIM
 ```
 
-### 1. TIA Portal Core & PLC Engineering (19 Tools)
+### 1. TIA Portal Core & PLC Engineering (20 Tools)
 - **Lifecycle & Instances**: Discover running PIDs (`tia_list_processes`), attach silently (`tia_connect`), open projects headless or with GUI (`tia_open_project`), save (`tia_save_project`), and close (`tia_close_project`).
 - **Hardware Topology**: Inspect racks, subnets, slots, CPU modules, and distributed I/O stations (`tia_list_devices`, `tia_get_device_tree`).
-- **Software Logic & Blocks**: Enumerate blocks with language and consistency state (`tia_list_blocks`), export block code as SimaticML XML with extracted SCL (`tia_get_block_code`), import/overwrite logic (`tia_import_block`), and delete obsolete blocks (`tia_delete_block`).
+- **Software Logic & Blocks**: Enumerate blocks with language and consistency state (`tia_list_blocks`), export block code as SimaticML XML with extracted SCL (`tia_get_block_code`), import/overwrite SimaticML (`tia_import_block`), import complete SCL source (`tia_import_scl_block`), and delete obsolete blocks (`tia_delete_block`). SCL replacement backs up and deletes the old block before importing; failed imports attempt restoration, while compile errors are reported without rollback.
 - **Data Types & Tags**: Author User Data Types (`tia_list_plc_types`, `tia_import_plc_type`) and manage tag tables (`tia_list_tag_tables`, `tia_get_tags`).
 - **Native Diagnostics**: Compile software containers via `ICompilable` and return exact error messages, line numbers, and warnings (`tia_compile`).
 
@@ -322,7 +322,7 @@ stateDiagram-v2
 
 ---
 
-## Complete Tools Reference Dictionary (78 Tools)
+## Complete Tools Reference Dictionary (79 Tools)
 
 | # | Tool Name | Category | Primary Parameters | Description |
 |:---:|:---|:---:|:---|:---|
@@ -340,6 +340,7 @@ stateDiagram-v2
 | 12 | `tia_list_blocks` | PLC Logic | `plc_name`, `block_type`, `folder` | Enumerate OB, FB, FC, and DB blocks with language & status. |
 | 13 | `tia_get_block_code` | PLC Logic | `block_name`, `plc_name` | Export block as SimaticML XML & extract SCL. |
 | 14 | `tia_import_block` | PLC Logic | `xml_content`, `plc_name`, `overwrite` | Import or update block logic via SimaticML XML. |
+| 14a | `tia_import_scl_block` | PLC Logic | `scl_code`, `plc_name`, `folder`, `compile_after_import`, `open_after_import` | Import a complete SCL block; replacement uses backup/delete/reimport with restore on import failure. |
 | 15 | `tia_delete_block` | PLC Logic | `block_name`, `plc_name` | Delete a PLC program block. |
 | 16 | `tia_list_plc_types` | Data Types | `plc_name` | List all User Data Types (UDTs). |
 | 17 | `tia_get_plc_type` | Data Types | `type_name`, `plc_name` | Export UDT definition as SimaticML XML. |
@@ -701,7 +702,7 @@ Options:
   --pid <pid>                            Attach to specific TIA Portal process ID
   --config <path>, -c <path>             Load specific config.json file
   --test                                 Execute rapid TIA Portal connectivity test
-  --export-schemas [dir]                 Export all 77 MCP tool JSON schemas
+  --export-schemas [dir]                 Export all 80 MCP tool JSON schemas
   --render-hmi INPUT --output OUTPUT     Offline PNG/overlay/layout JSON rendering
     [--screen GROUP/NAME] [--language en-US] [--scale 2]
   --register-whitelist                   Register SHA-256 hash in Siemens AllowList
@@ -724,6 +725,10 @@ This repository includes 3 turnkey agent skills located in `.agents/skills/`:
 ---
 
 ## Version History & Bug Fixes
+
+### [v2.3.0] - 2026-11-13
+* Added `tia_import_scl_block` for importing complete SCL source strings, with backup and restore around same-name block replacement plus optional compilation and editor opening.
+* Updated the reported MCP server version and assembly metadata to v2.3.0.
 
 ### [v2.2.0] - 2026-11-12
 * Added direct, in-place HMI item property read/update tools with allowlisting and readback verification.

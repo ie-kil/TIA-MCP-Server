@@ -251,6 +251,50 @@ namespace TiaOpennessMcp.Tools
                     return CallToolResult.Text(msg);
                 });
 
+            // 13a. tia_import_scl_block
+            Register("tia_import_scl_block", "Import a complete SCL block source string; the server creates the temporary .scl file. Existing same-name blocks are backed up, deleted, and replaced; failed imports attempt to restore the backup.",
+                schema =>
+                {
+                    schema.Properties["scl_code"] = new ToolProperty
+                    {
+                        Type = "string",
+                        Description = "Complete SCL source for exactly one FUNCTION, FUNCTION_BLOCK, ORGANIZATION_BLOCK, or DATA_BLOCK."
+                    };
+                    schema.Properties["plc_name"] = new ToolProperty
+                    {
+                        Type = "string",
+                        Description = "Name of the target PLC (optional, defaults to first PLC)."
+                    };
+                    schema.Properties["folder"] = new ToolProperty
+                    {
+                        Type = "string",
+                        Description = "Target block group path (optional; an existing block's group is preserved when omitted)."
+                    };
+                    schema.Properties["compile_after_import"] = new ToolProperty
+                    {
+                        Type = "boolean",
+                        Description = "Compile the target PLC after import (default true). Compilation errors are reported and do not roll back the imported block.",
+                        Default = true
+                    };
+                    schema.Properties["open_after_import"] = new ToolProperty
+                    {
+                        Type = "boolean",
+                        Description = "Open the imported block in the TIA Portal editor after import (default false).",
+                        Default = false
+                    };
+                    schema.Required = new List<string> { "scl_code" };
+                },
+                args =>
+                {
+                    string sclCode = GetStringProp(args, "scl_code") ?? throw new ArgumentException("scl_code is required.");
+                    string? plc = GetStringProp(args, "plc_name");
+                    string? folder = GetStringProp(args, "folder");
+                    bool compileAfterImport = GetBoolProp(args, "compile_after_import", true);
+                    bool openAfterImport = GetBoolProp(args, "open_after_import", false);
+                    return CallToolResult.Json(
+                        TiaManager.Instance.ImportSclBlock(plc, sclCode, folder, compileAfterImport, openAfterImport));
+                });
+
             // 14. tia_delete_block
             Register("tia_delete_block", "Delete a PLC program block from the project.",
                 schema =>

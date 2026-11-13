@@ -1,7 +1,7 @@
 # Siemens TIA Portal V21 Openness MCP Server
 ## Complete Skills & Tools Reference Manual
 
-**Version:** 2.2.0
+**Version:** 2.3.0
 **Target Platform:** Siemens TIA Portal V21 (PublicAPI .NET Framework 4.8 x64)  
 **Supported Transports:** HTTP JSON-RPC 2.0, Server-Sent Events (SSE), stdio MCP  
 **Default Endpoints:** `http://localhost:5001/mcp`, `http://localhost:5001/sse`, `http://localhost:5001/status`
@@ -114,7 +114,7 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
   - `tia_list_blocks`                      - `hmi_get_screen_items`
   -                                        - `hmi_get_screen_item` / `hmi_update_screen_item`
   - `tia_get_block_code`                   - `hmi_add_label` / `button`
-  - `tia_import_block`                     - `hmi_set_tag_dynamization`
+  - `tia_import_block` / `tia_import_scl_block` - `hmi_set_tag_dynamization`
          │                                 - `hmi_read_event_scripts` / `hmi_set_event_script`
          │                                 - `hmi_set_expression_dynamization`
          │                                 - `hmi_get_js_type_definitions`
@@ -215,7 +215,7 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
 
 ---
 
-### Category 3: PLC Software, Blocks & Compilation (9 Tools)
+### Category 3: PLC Software, Blocks & Compilation (10 Tools)
 
 #### 11. `tia_list_plcs`
 - **Description:** List all CPU devices and summarize their software metrics (block counts, UDT counts, tag table counts).
@@ -241,6 +241,15 @@ The `tia-portal-openness` skill instructs AI agents on standard operating proced
   - `overwrite` *(boolean, optional, default: true)*: Overwrite existing block.
   - `plc_name` *(string, optional)*: Target PLC.
   - `folder` *(string, optional)*: Subfolder inside Program Blocks.
+
+#### 14a. `tia_import_scl_block`
+- **Description:** Import a complete SCL block source. Existing blocks with the same name are backed up, deleted, and replaced; failed imports attempt to restore the backup. This is whole-block replacement, not an in-place edit. Compilation defaults to enabled, and compiler errors do not roll back the import.
+- **Input Parameters:**
+  - `scl_code` *(string, required)*: Complete source for exactly one `FUNCTION`, `FUNCTION_BLOCK`, `ORGANIZATION_BLOCK`, or `DATA_BLOCK`.
+  - `plc_name` *(string, optional)*: Target PLC.
+  - `folder` *(string, optional)*: Existing PLC block group path. If omitted, an existing block's group is preserved; new blocks go in the root group.
+  - `compile_after_import` *(boolean, optional, default: true)*: Compile after generation.
+  - `open_after_import` *(boolean, optional, default: false)*: Open the imported block in the TIA Portal editor.
 
 #### 15. `tia_delete_block`
 - **Description:** Delete a block from the PLC software container.

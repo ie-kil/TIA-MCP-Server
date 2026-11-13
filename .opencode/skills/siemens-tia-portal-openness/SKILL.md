@@ -52,6 +52,7 @@ The TIA Openness MCP server operates as a persistent daemon process maintaining 
   ```json
   { "xml_content": "<Document>...", "overwrite": true }
   ```
+- **`tia_import_scl_block`**: Import a complete `FUNCTION`, `FUNCTION_BLOCK`, `ORGANIZATION_BLOCK`, or `DATA_BLOCK` from `scl_code`. Same-name blocks are replaced as whole blocks using backup/delete/reimport; import failures attempt to restore the backup. Compilation is enabled by default, and compile errors do not roll back the imported block.
 - **`tia_compile`**: Always compile after modifying PLC blocks or UDTs:
   ```json
   { "plc_name": "PLC_1" }
