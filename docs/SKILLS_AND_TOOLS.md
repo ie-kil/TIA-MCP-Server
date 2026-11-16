@@ -770,6 +770,8 @@ later live disposable-project verification.
   directory through the connected TIA Portal instance.
 - `hmi_create_screen_group` / `hmi_create_screen_under_group`: Create HMI
   structure under exact group paths.
+- `hmi_create_tag_table`: Create a tag table without overwriting an existing
+  table; accepts only `on_conflict: "fail"`.
 - `hmi_create_navigation_button`: Create a new button with a syntax-checked
   Tapped action that navigates to an exact existing screen. Captions are
   escaped and wrapped in the required HTML paragraph; existing items are not

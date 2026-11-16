@@ -19,7 +19,7 @@
 | **5** | [Siemens TestSuite Automation](#category-5-siemens-testsuite-automation-2-tools) | 2 | `tia_testsuite_list_tests`, `tia_testsuite_load_test` |
 | **6** | [S7-PLCSIM Advanced Live Simulation & Testing](#category-6-s7-plcsim-advanced-live-simulation--testing-12-tools) | 12 | `plcsim_list_instances`, `plcsim_connect`, `plcsim_disconnect`, `plcsim_get_status`, `plcsim_set_operating_state`, `plcsim_set_scale_factor`, `plcsim_read_tag`, `plcsim_write_tag`, `plcsim_read_tags`, `plcsim_write_tags`, `plcsim_run_sequence`, `plcsim_run_mixing_sequence` |
 | **7** | [Project, Library & Text Discovery](#category-7-project-library--text-discovery-6-tools) | 6 | `tia_list_global_libraries`, `tia_search_project_library_types`, `tia_list_project_faceplates`, `tia_get_library_type_instances`, `tia_list_project_text_categories`, `tia_download_project_texts` |
-| **8** | [PLC, Project & HMI Operations](#category-8-plc-project--hmi-operations-15-tools) | 15 | `tia_get_plc_tag_info`, `tia_read_user_constant`, `tia_get_tag_table_attributes`, `tia_create_plc_tag_table`, `tia_create_tagtable_group`, `tia_create_block_group`, `tia_create_user_constant`, `tia_update_user_constant`, `tia_create_project`, `hmi_create_screen_group`, `hmi_create_screen_under_group`, `hmi_create_navigation_button`, `hmi_rename_screen`, `hmi_rename_screen_group`, `hmi_rename_tag_table` |
+| **8** | [PLC, Project & HMI Operations](#category-8-plc-project--hmi-operations-16-tools) | 16 | `tia_get_plc_tag_info`, `tia_read_user_constant`, `tia_get_tag_table_attributes`, `tia_create_plc_tag_table`, `tia_create_tagtable_group`, `tia_create_block_group`, `tia_create_user_constant`, `tia_update_user_constant`, `tia_create_project`, `hmi_create_screen_group`, `hmi_create_screen_under_group`, `hmi_create_tag_table`, `hmi_create_navigation_button`, `hmi_rename_screen`, `hmi_rename_screen_group`, `hmi_rename_tag_table` |
 
 ## MCP Documentation Resources
 
@@ -1591,6 +1591,8 @@ in-memory read-back; saving and reopening remains a separate verification step.
   `parent_group_path` (empty means root) and `target_name`.
 * `hmi_create_screen_under_group`: Required `parent_group_path`, `screen_name`,
   and `on_conflict`; optional positive `width`, `height`, and `target_name`.
+* `hmi_create_tag_table`: Required `table_name` and `on_conflict: "fail"`;
+  optional exact `target_name`. Existing tables are never overwritten.
 * `hmi_rename_screen`: Required `screen_name`, `group_path`, `new_name`, and
   `on_conflict`; optional `target_name`. Renames in place.
 * `hmi_rename_screen_group`: Required `group_path`, `new_name`, and
@@ -1599,7 +1601,7 @@ in-memory read-back; saving and reopening remains a separate verification step.
   `on_conflict`; optional `target_name`. Renames in place and verifies the tag
   name set remains unchanged.
 
-All five HMI structure operations accept only `on_conflict: "fail"` and return the
+All six HMI structure operations accept only `on_conflict: "fail"` and return the
 affected name/path plus relevant screen dimensions, item count, or tag count.
 
 ### WinCC Unified navigation button

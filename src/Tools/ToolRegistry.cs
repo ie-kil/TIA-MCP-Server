@@ -1313,6 +1313,25 @@ namespace TiaOpennessMcp.Tools
                     return CallToolResult.Text(res);
                 });
 
+            // 37. hmi_create_tag_table
+            Register("hmi_create_tag_table", "Create an HMI tag table without overwriting an existing table.",
+                schema =>
+                {
+                    schema.Properties["table_name"] = new ToolProperty { Type = "string", Description = "Name for the new HMI tag table; '/' and '\\' are not allowed." };
+                    schema.Properties["target_name"] = new ToolProperty { Type = "string", Description = "Exact HMI software name (optional when one target resolves uniquely)." };
+                    schema.Properties["on_conflict"] = new ToolProperty { Type = "string", Enum = new List<string> { "fail" }, Description = "Required conflict behavior; only 'fail' is supported." };
+                    schema.Required = new List<string> { "table_name", "on_conflict" };
+                },
+                args =>
+                {
+                    string tableName = GetStringProp(args, "table_name") ?? throw new ArgumentException("table_name is required.");
+                    string onConflict = GetStringProp(args, "on_conflict") ?? throw new ArgumentException("on_conflict is required.");
+                    var result = TiaManager.Instance.CreateHmiTagTable(
+                        GetStringProp(args, "target_name") ?? TiaManager.Instance.FindHmiSoftware().Name,
+                        tableName, onConflict);
+                    return CallToolResult.Json(result, isError: !result.Success);
+                });
+
             // hmi_create_discrete_alarm
             Register("hmi_create_discrete_alarm", "Create or update a WinCC Unified discrete alarm with an alarm class, HMI tag trigger, and multilingual event text.",
                 schema =>

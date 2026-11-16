@@ -47,6 +47,80 @@ namespace TiaOpennessMcp.Tia
             });
         }
 
+        public HmiStructureMutationResult CreateHmiTagTable(
+            string targetName,
+            string tableName,
+            string onConflict)
+        {
+            ValidateHmiName(tableName, nameof(tableName));
+            if (tableName.IndexOf('/') >= 0 || tableName.IndexOf('\\') >= 0)
+            {
+                throw new ArgumentException("Tag table names cannot contain '/' or '\\'.", nameof(tableName));
+            }
+            if (!string.Equals(onConflict, HmiStructureConflictPolicy, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("onConflict is required and must be 'fail'; overwriting is not supported.", nameof(onConflict));
+            }
+
+            HmiSoftware hmi = FindHmiSoftware(targetName);
+            if (!string.Equals(hmi.Name, targetName, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("targetName must exactly match an HMI software name.");
+            }
+
+            bool mutationStarted = false;
+            try
+            {
+                using (ExclusiveAccess access = _tiaPortal!.ExclusiveAccess("Create Unified HMI tag table"))
+                using (Transaction transaction = access.Transaction(_project!, "Create Unified HMI tag table"))
+                {
+                    if (hmi.TagTables.Any(table =>
+                            string.Equals(table.Name, tableName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        throw new InvalidOperationException($"An HMI tag table named '{tableName}' already exists.");
+                    }
+
+                    mutationStarted = true;
+                    HmiTagTable created = hmi.TagTables.Create(tableName);
+                    List<HmiTagTable> readBack = hmi.TagTables
+                        .Where(table => string.Equals(table.Name, tableName, StringComparison.Ordinal))
+                        .ToList();
+                    if (readBack.Count != 1 ||
+                        !string.Equals(created.Name, tableName, StringComparison.Ordinal) ||
+                        !string.Equals(readBack[0].Name, created.Name, StringComparison.Ordinal))
+                    {
+                        throw new HmiStructureVerificationException(
+                            $"Created HMI tag table '{tableName}' could not be verified by exact-name read-back.");
+                    }
+
+                    transaction.CommitOnDispose();
+                }
+
+                return new HmiStructureMutationResult
+                {
+                    Success = true,
+                    Operation = "create_hmi_tag_table",
+                    Status = "created",
+                    Partial = false,
+                    Message = "HMI tag table created and verified by read-back.",
+                    Name = tableName
+                };
+            }
+            catch (Exception ex) when (mutationStarted)
+            {
+                return new HmiStructureMutationResult
+                {
+                    Success = false,
+                    Operation = "create_hmi_tag_table",
+                    Status = ex is HmiStructureVerificationException ? "verification_failed" : "api_failure",
+                    Partial = true,
+                    Message = $"{ex.GetType().Name}: {ex.Message}",
+                    Name = tableName,
+                    Warning = "The API call may have changed project state. Inspect the HMI tag table by exact-name read-back before retrying; no rollback is claimed."
+                };
+            }
+        }
+
         public HmiStructureMutationResult CreateHmiScreenUnderGroup(
             string parentGroupPath,
             string screenName,
@@ -437,6 +511,7 @@ namespace TiaOpennessMcp.Tia
         public string Status { get; set; } = string.Empty;
         public bool Partial { get; set; }
         public string Message { get; set; } = string.Empty;
+        public string? Warning { get; set; }
         public List<string> Warnings { get; set; } = new List<string>();
         public string? OldName { get; set; }
         public string Name { get; set; } = string.Empty;

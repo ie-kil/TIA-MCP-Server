@@ -40,6 +40,8 @@ The signatures below were checked against the bundled
 | `HmiScreenComposition.Find(string)` | returns `HmiScreen` | Read-back by exact name |
 | `HmiScreenBase.Name` | `string` getter and setter | Rename existing screen in place |
 | `HmiSoftware.TagTables` | property returning `HmiTagTableComposition` | HMI tag-table collection |
+| `HmiTagTableComposition.Create(string)` | returns `HmiTagTable` | Create a table in the selected HMI software |
+| `HmiTagTable.Delete()` | `void` | Remove a newly created test table during cleanup |
 | `HmiTagTable.Name` | `string` getter and setter | Rename table in place |
 | `HmiTagTable.Tags` | property returning the tag composition | Verify tag names remain readable after rename |
 
@@ -58,6 +60,7 @@ cases `on_conflict` is required and its only accepted value is `"fail"`.
 |---|---|---|
 | `hmi_create_screen_group` | `group_name` (string, required), `parent_group_path` (string, optional; empty means root), `target_name` (string, optional), `on_conflict` (string enum `["fail"]`, required) | `TiaManager.Instance.CreateHmiScreenGroup(groupName, parentGroupPath, targetName, onConflict)` |
 | `hmi_create_screen_under_group` | `parent_group_path` (string, required and non-empty), `screen_name` (string, required), `width`/`height` (positive integers, optional), `target_name` (string, optional), `on_conflict` (string enum `["fail"]`, required) | `TiaManager.Instance.CreateHmiScreenUnderGroup(parentGroupPath, screenName, width, height, targetName, onConflict)` |
+| `hmi_create_tag_table` | `table_name` (string, required), `target_name` (string, optional), `on_conflict` (string enum `["fail"]`, required) | `TiaManager.Instance.CreateHmiTagTable(targetName, tableName, onConflict)` |
 | `hmi_rename_screen` | `screen_name`, `group_path` (empty means root), `new_name`, `on_conflict` (all required strings except optional `target_name`) | `TiaManager.Instance.RenameHmiScreen(screenName, groupPath, newName, targetName, onConflict)` |
 | `hmi_rename_screen_group` | `group_path` (required, non-empty), `new_name`, `on_conflict` (required strings), optional `target_name` | `TiaManager.Instance.RenameHmiScreenGroup(groupPath, newName, targetName, onConflict)` |
 | `hmi_rename_tag_table` | `table_name`, `new_name`, `on_conflict` (required strings), optional `target_name` | `TiaManager.Instance.RenameHmiTagTable(tableName, newName, targetName, onConflict)` |
@@ -121,11 +124,20 @@ tool's successful API call as proof that the project compiles.
 
 | Case | Procedure and expected result |
 |---|---|
-| Success | Rename a non-empty HMI tag table. Verify the table is found under the new name and the exact sorted tag-name set remains unchanged. Save/reopen and compile. |
+| Success | Create a disposable test table with `hmi_create_tag_table`, add a test tag to it with `hmi_create_tag` using that `table_name`, then rename it. Verify the table is found under the new name and the exact sorted tag-name set remains unchanged. Save/reopen and compile; cleanup may call `HmiTagTable.Delete()` only on the table created by this test. |
 | Invalid input | Empty/whitespace old or new name or unsupported conflict policy must fail without mutation. |
 | Missing/ambiguous target | Missing exact table name or zero/multiple HMI target resolution must fail. Duplicate matching table names must be reported as ambiguous. |
 | Conflict/dependency/API failure | Existing table name, including case-only variant, must fail. Exercise setter/read-back/API failure; expect `Success=false`, `Partial=true`, and inspect the actual table name and tag set because no atomicity/rollback is promised. |
 | Result/read-back | Assert old/new names and unchanged entry count. Verify table and its tag names/bindings are retained after save/reopen and compile. |
+
+### `hmi_create_tag_table`
+
+| Case | Procedure and expected result |
+|---|---|
+| Success | Create a new table in one exact HMI software target. Verify `Status=created`, `Success=true`, `Partial=false`, and exact-name read-back before commit. |
+| Invalid input | Empty/whitespace or edge-whitespace name, control characters, `/`, `\`, an inexact target name, or an `on_conflict` value other than `"fail"` (case-insensitive) must fail without creating a table. |
+| Conflict/API failure | An existing table name, including a case-only variant, must fail without overwrite. Exercise API/read-back failure; expect `Success=false`, `Partial=true`, and an inspect-before-retry warning without a rollback claim. |
+| Cleanup | Call `HmiTagTable.Delete()` only on the test table created by this case; never delete a pre-existing table. |
 
 ## Explicitly deferred
 

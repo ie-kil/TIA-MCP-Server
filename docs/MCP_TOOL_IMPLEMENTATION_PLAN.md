@@ -781,10 +781,10 @@ the linked plans.
 ### Tags, tables, and text lists
 
 #### `hmi_create_tag_table`
-- **Inputs:** HMI context, table name, optional folder and metadata.
-- **Behavior:** Validate uniqueness and create an empty table or explicitly supplied initial entries.
-- **Result:** Table ID, name, and entry count.
-- **Failures:** Duplicate name or invalid metadata.
+- **Inputs:** Required `table_name` and `on_conflict: "fail"`; optional exact HMI `target_name`.
+- **Behavior:** Validate the table name and target, reject exact or case-insensitive collisions, then create and verify the table in a single transaction.
+- **Result:** `HmiStructureMutationResult` with operation, status, name, and read-back outcome.
+- **Failures:** Duplicate name or invalid input fails before mutation; API or read-back failures after mutation starts return `Partial=true` with an inspect-before-retry warning.
 
 #### `hmi_create_tag_dynamic`
 - **Inputs:** HMI tag ID, acquisition/binding configuration, and explicit trigger/condition.

@@ -150,6 +150,7 @@ try {
         tia_create_project = @('destination_location', 'project_name')
         hmi_create_screen_group = @('group_name', 'on_conflict')
         hmi_create_screen_under_group = @('parent_group_path', 'screen_name', 'on_conflict')
+        hmi_create_tag_table = @('table_name', 'on_conflict')
         hmi_rename_screen = @('screen_name', 'group_path', 'new_name', 'on_conflict')
         hmi_rename_screen_group = @('group_path', 'new_name', 'on_conflict')
         hmi_rename_tag_table = @('table_name', 'new_name', 'on_conflict')
@@ -202,6 +203,7 @@ try {
     foreach ($toolName in @(
         'hmi_create_screen_group',
         'hmi_create_screen_under_group',
+        'hmi_create_tag_table',
         'hmi_rename_screen',
         'hmi_rename_screen_group',
         'hmi_rename_tag_table'
