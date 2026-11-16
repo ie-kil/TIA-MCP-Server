@@ -531,6 +531,10 @@ This checks that every array parameter declares an `items` schema and that its i
 
 The Siemens-facing read tools have per-case plans for [PLC metadata](docs/MCP_TOOL_TEST_PLAN_PLC.md), [PLC tag and constant reads](docs/MCP_TOOL_TEST_PLAN_PLC_READS.md), [DB-member attributes](docs/MCP_TOOL_TEST_PLAN_PLC_SLICE_READS.md), [tag-table attributes and block groups](docs/MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md), [library-type instances](docs/MCP_TOOL_TEST_PLAN_LIBRARY_TYPE_INSTANCES.md), [project/library/text discovery](docs/MCP_TOOL_TEST_PLAN_PROJECT.md), and [HMI discovery](docs/MCP_TOOL_TEST_PLAN_HMI.md). Mutation tools have separate plans for [PLC mutations](docs/MCP_TOOL_TEST_PLAN_PLC_MUTATIONS.md), [project creation](docs/MCP_TOOL_TEST_PLAN_PROJECT_MUTATIONS.md), [PLC group operations](docs/MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md), [HMI structure](docs/MCP_TOOL_TEST_PLAN_HMI_STRUCTURE.md), and [HMI navigation buttons](docs/MCP_TOOL_TEST_PLAN_HMI_NAVIGATION.md). Project-text reads, PLC text-list discovery, library-type instantiation, and HMI template creation remain deferred with acceptance cases in their respective plans. No live tests were run for these slices.
 
+For the ordered Windows server update, disposable-project test passes, safety
+gates, and a copyable prompt for an MCP-connected test agent, see the
+[live-test runbook](docs/MCP_TOOL_LIVE_TEST_RUNBOOK.md).
+
 Run HMI JSON regression checks after building (Debug by default):
 ```powershell
 .\scripts\Test-HmiJson.ps1
