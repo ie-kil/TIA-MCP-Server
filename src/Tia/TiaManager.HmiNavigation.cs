@@ -69,7 +69,7 @@ namespace TiaOpennessMcp.Tia
 
             string script = "HMIRuntime.UI.SysFct.ChangeScreen(" +
                 JsonSerializer.Serialize(destination.Name) + ", \"~\");";
-            string formattedText = "<body><p style=\"margin: 0; text-align: center;\">" +
+            string formattedText = "<body><p>" +
                 (SecurityElement.Escape(text) ?? string.Empty) + "</p></body>";
 
             var result = new HmiNavigationButtonMutationResult
