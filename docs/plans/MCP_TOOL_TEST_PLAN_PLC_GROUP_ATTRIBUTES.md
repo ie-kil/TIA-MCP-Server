@@ -51,7 +51,9 @@ name and path, not an ID: no stable group ID member is established.
 
 Run on a disposable V21 project after confirming the connected instance and
 active project. Record project identity, PLC name, TIA build, and state before
-each case. No live TIA operation was run during implementation.
+each case. No live TIA operation was run during implementation; subsequent
+selected checks are recorded in the
+[runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md).
 
 ### `tia_create_block_group`
 

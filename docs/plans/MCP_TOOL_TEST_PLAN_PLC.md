@@ -139,8 +139,10 @@ rejected rather than treated as omitted.
    query; none of these methods should change it.
 5. Close the disposable project without saving any unrelated setup changes.
 
-No live TIA Portal or disposable-project execution was performed for this
-change.
+No live TIA Portal or disposable-project execution was performed during
+implementation. Subsequent selected checks are recorded in the
+[runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md); the remaining cases still require
+live verification.
 
 ## Deferred operations
 

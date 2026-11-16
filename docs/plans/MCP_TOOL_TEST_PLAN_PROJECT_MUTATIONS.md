@@ -119,6 +119,7 @@ been verified.
 
 ## Validation status
 
-This work package is compile-validated with the repository Release build only.
-No TIA Portal connection, disposable project, project-creation call, or text
-write has been exercised live.
+The implementation work package was compile-validated with the repository
+Release build only. A later live `tia_create_project` run is recorded in the
+[runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md); project-text writes remain
+deferred.

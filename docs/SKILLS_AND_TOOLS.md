@@ -746,10 +746,10 @@ Use `hmi_get_js_type_definitions` or the read-only resource `tia://docs/hmi-java
 - `hmi_list_graphic_lists`: graphic-list names for one unambiguous HMI Unified target.
 
 The tools report only V21 metadata verified by this implementation. See the
-[PLC](./MCP_TOOL_TEST_PLAN_PLC.md),
-[DB-member attributes](./MCP_TOOL_TEST_PLAN_PLC_SLICE_READS.md),
-[project/library/text](./MCP_TOOL_TEST_PLAN_PROJECT.md), and
-[HMI](./MCP_TOOL_TEST_PLAN_HMI.md) test plans for per-case offline checks and
+[PLC](./plans/MCP_TOOL_TEST_PLAN_PLC.md),
+[DB-member attributes](./plans/MCP_TOOL_TEST_PLAN_PLC_SLICE_READS.md),
+[project/library/text](./plans/MCP_TOOL_TEST_PLAN_PROJECT.md), and
+[HMI](./plans/MCP_TOOL_TEST_PLAN_HMI.md) test plans for per-case offline checks and
 later live disposable-project verification.
 
 ### Category 8: PLC, Project & HMI Operations (15 Tools)
@@ -782,13 +782,13 @@ later live disposable-project verification.
 
 Mutations are non-transactional and have not been tested against a live TIA
 project here. Use the per-case plans:
-[PLC reads](./MCP_TOOL_TEST_PLAN_PLC_READS.md),
-[library-type instances](./MCP_TOOL_TEST_PLAN_LIBRARY_TYPE_INSTANCES.md),
-[PLC mutations](./MCP_TOOL_TEST_PLAN_PLC_MUTATIONS.md),
-[tag-table attributes and block groups](./MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md),
-[project creation](./MCP_TOOL_TEST_PLAN_PROJECT_MUTATIONS.md),
-[HMI structure](./MCP_TOOL_TEST_PLAN_HMI_STRUCTURE.md), and
-[HMI navigation buttons](./MCP_TOOL_TEST_PLAN_HMI_NAVIGATION.md).
+[PLC reads](./plans/MCP_TOOL_TEST_PLAN_PLC_READS.md),
+[library-type instances](./plans/MCP_TOOL_TEST_PLAN_LIBRARY_TYPE_INSTANCES.md),
+[PLC mutations](./plans/MCP_TOOL_TEST_PLAN_PLC_MUTATIONS.md),
+[tag-table attributes and block groups](./plans/MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md),
+[project creation](./plans/MCP_TOOL_TEST_PLAN_PROJECT_MUTATIONS.md),
+[HMI structure](./plans/MCP_TOOL_TEST_PLAN_HMI_STRUCTURE.md), and
+[HMI navigation buttons](./plans/MCP_TOOL_TEST_PLAN_HMI_NAVIGATION.md).
 
 ---
 

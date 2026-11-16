@@ -1519,13 +1519,13 @@ and return `Items`, `Offset`, `PageSize`, `TotalCount`, `HasMore`,
 - **Returns:** Graphic-list names. Entries and file-backed assets are not included.
 
 The case-by-case test plans for these Siemens-facing tools are
-[PLC metadata](./MCP_TOOL_TEST_PLAN_PLC.md),
-[project/library/text discovery](./MCP_TOOL_TEST_PLAN_PROJECT.md),
-[PLC tag and constant reads](./MCP_TOOL_TEST_PLAN_PLC_READS.md),
-[DB-member attributes](./MCP_TOOL_TEST_PLAN_PLC_SLICE_READS.md),
-[tag-table attributes and block groups](./MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md),
-[library-type instances](./MCP_TOOL_TEST_PLAN_LIBRARY_TYPE_INSTANCES.md),
-and [HMI discovery](./MCP_TOOL_TEST_PLAN_HMI.md). They specify offline contract
+[PLC metadata](./plans/MCP_TOOL_TEST_PLAN_PLC.md),
+[project/library/text discovery](./plans/MCP_TOOL_TEST_PLAN_PROJECT.md),
+[PLC tag and constant reads](./plans/MCP_TOOL_TEST_PLAN_PLC_READS.md),
+[DB-member attributes](./plans/MCP_TOOL_TEST_PLAN_PLC_SLICE_READS.md),
+[tag-table attributes and block groups](./plans/MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md),
+[library-type instances](./plans/MCP_TOOL_TEST_PLAN_LIBRARY_TYPE_INSTANCES.md),
+and [HMI discovery](./plans/MCP_TOOL_TEST_PLAN_HMI.md). They specify offline contract
 checks and later live disposable-project verification; no live verification is
 claimed here.
 
@@ -1614,11 +1614,11 @@ affected name/path plus relevant screen dimensions, item count, or tag count.
   text in the required HTML paragraph, syntax-checks the script, and verifies
   the button/action by read-back. Existing screen items are never replaced.
   HMI compilation, save/reopen, and runtime navigation remain separate tests.
-The test plans for [PLC reads](./MCP_TOOL_TEST_PLAN_PLC_READS.md),
-[PLC mutations](./MCP_TOOL_TEST_PLAN_PLC_MUTATIONS.md),
-[tag-table attributes and block groups](./MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md),
-[HMI navigation buttons](./MCP_TOOL_TEST_PLAN_HMI_NAVIGATION.md),
-[project creation](./MCP_TOOL_TEST_PLAN_PROJECT_MUTATIONS.md), and
-[HMI structure](./MCP_TOOL_TEST_PLAN_HMI_STRUCTURE.md) include case-by-case
+The test plans for [PLC reads](./plans/MCP_TOOL_TEST_PLAN_PLC_READS.md),
+[PLC mutations](./plans/MCP_TOOL_TEST_PLAN_PLC_MUTATIONS.md),
+[tag-table attributes and block groups](./plans/MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md),
+[HMI navigation buttons](./plans/MCP_TOOL_TEST_PLAN_HMI_NAVIGATION.md),
+[project creation](./plans/MCP_TOOL_TEST_PLAN_PROJECT_MUTATIONS.md), and
+[HMI structure](./plans/MCP_TOOL_TEST_PLAN_HMI_STRUCTURE.md) include case-by-case
 offline checks and live disposable-project procedures. No live mutation tests
 are claimed.

@@ -52,7 +52,11 @@
 - The bundled V21 WinCC Unified assembly exposes `HmiSoftware.ScreenGroups` and `HmiSoftware.HmiGraphicLists`, plus screen-group `Groups`, `Screens`, and `Name` and graphic-list `Name`. It contains no `HmiTemplate` type. No verified public API for complete template inventory, graphic-list entries, or file-backed asset inventory was identified. Those are deferred rather than inferred from screen groups or graphic lists.
 - Device/software target discovery is already provided by `ListHmiTargets` and `FindHmiSoftware`; this slice adds no duplicate device metadata endpoint. It also introduces no IDs, revisions, or event/dynamic mutation.
 
-## Later live verification on a disposable project (not performed)
+## Additional live verification on a disposable project
+
+Selected live checks are recorded in the
+[runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md). Run the remaining cases below;
+the runbook's `NOT RUN` and `BLOCKED` results are not passes.
 
 Prerequisites: Windows with TIA Portal V21 and the matching V21 public API installed; an attached TIA Portal V21 session with a disposable project containing at least one WinCC Unified device. Keep the existing persistent TIA connection alive, and verify status before operations. A non-Windows build or bundled reference DLL inspection is not live-project verification.
 

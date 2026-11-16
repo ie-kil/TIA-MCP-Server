@@ -1,6 +1,6 @@
 # Milestone 3 — project/library/reference/text discovery test plan
 
-This plan covers only the read-only methods in `TiaManager.ProjectDiscovery.cs`. The tools are registered in `ToolRegistry` and have checked-in schemas. No live TIA Portal or disposable-project verification was performed for this work package.
+This plan covers only the read-only methods in `TiaManager.ProjectDiscovery.cs`. The tools are registered in `ToolRegistry` and have checked-in schemas. The implementation task did not perform live TIA Portal or disposable-project verification; subsequent selected checks are recorded in the [runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md), and remaining cases still require live verification.
 
 ## Shared setup and contracts
 

@@ -54,9 +54,11 @@ different object type.
 
 ## Case-by-case validation plan: `hmi_create_navigation_button`
 
-No live TIA Portal project or runtime was used for this slice. Execute the
-following against a disposable V21 project with at least two unique HMI
-software targets available; save a backup first.
+No live TIA Portal project or runtime was used during implementation.
+Subsequent selected live checks are recorded in the
+[runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md); runtime navigation remains
+untested. Execute the remaining cases against a disposable V21 project with
+at least two unique HMI software targets available; save a backup first.
 
 | Case | Procedure and expected result |
 |---|---|

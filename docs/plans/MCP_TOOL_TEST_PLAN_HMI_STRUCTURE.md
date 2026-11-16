@@ -74,11 +74,13 @@ is also marked as an error. It contains no revision or atomicity field.
 
 ## Case-by-case validation plan
 
-No live TIA Portal or project tests were run for this implementation. Run the
-following later against a disposable V21 project with at least one HMI Unified
-target. Save a copy before exercising writes, then read the result in TIA
-Portal/Openness and compile the HMI. Record compile diagnostics; do not treat a
-tool's successful API call as proof that the project compiles.
+No live TIA Portal or project tests were run during implementation. Selected
+later live checks are recorded in the
+[runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md). Run the remaining cases against a
+disposable V21 project with at least one HMI Unified target. Save a copy before
+exercising writes, then read the result in TIA Portal/Openness and compile the
+HMI. Record compile diagnostics; do not treat a tool's successful API call as
+proof that the project compiles.
 
 ### `hmi_create_screen_group`
 

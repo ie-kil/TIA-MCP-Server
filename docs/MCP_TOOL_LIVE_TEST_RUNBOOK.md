@@ -89,12 +89,12 @@ live TIA instance.
 
 Run these before any mutation:
 
-- [PLC metadata](./MCP_TOOL_TEST_PLAN_PLC.md)
-- [PLC tag and constant reads](./MCP_TOOL_TEST_PLAN_PLC_READS.md)
-- [DB-member attributes and deferred PLC text-list read](./MCP_TOOL_TEST_PLAN_PLC_SLICE_READS.md)
-- [Project/library/text discovery](./MCP_TOOL_TEST_PLAN_PROJECT.md)
-- [Library-type instances](./MCP_TOOL_TEST_PLAN_LIBRARY_TYPE_INSTANCES.md)
-- [HMI discovery](./MCP_TOOL_TEST_PLAN_HMI.md)
+- [PLC metadata](./plans/MCP_TOOL_TEST_PLAN_PLC.md)
+- [PLC tag and constant reads](./plans/MCP_TOOL_TEST_PLAN_PLC_READS.md)
+- [DB-member attributes and deferred PLC text-list read](./plans/MCP_TOOL_TEST_PLAN_PLC_SLICE_READS.md)
+- [Project/library/text discovery](./plans/MCP_TOOL_TEST_PLAN_PROJECT.md)
+- [Library-type instances](./plans/MCP_TOOL_TEST_PLAN_LIBRARY_TYPE_INSTANCES.md)
+- [HMI discovery](./plans/MCP_TOOL_TEST_PLAN_HMI.md)
 
 Use exact PLC, DB/member, table/group, project, library-type/version, and HMI
 selectors. Include the missing-target, case mismatch, ambiguity, and empty
@@ -106,9 +106,9 @@ Mark unavailable fixture-dependent cases `BLOCKED`.
 Only proceed after the operator confirms the active project is the disposable
 copy and authorizes project edits:
 
-- [PLC tag/group/constant mutations](./MCP_TOOL_TEST_PLAN_PLC_MUTATIONS.md)
-- [Block-group creation and tag-table attribute read](./MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md)
-- [Project creation](./MCP_TOOL_TEST_PLAN_PROJECT_MUTATIONS.md)
+- [PLC tag/group/constant mutations](./plans/MCP_TOOL_TEST_PLAN_PLC_MUTATIONS.md)
+- [Block-group creation and tag-table attribute read](./plans/MCP_TOOL_TEST_PLAN_PLC_GROUP_ATTRIBUTES.md)
+- [Project creation](./plans/MCP_TOOL_TEST_PLAN_PROJECT_MUTATIONS.md)
 
 Use unique test names with a clear prefix, for example
 `MCP_TEST_20261116_`. Exercise create, exact read-back, safe conflict, and
@@ -124,8 +124,8 @@ as its destination.
 
 After confirming the same disposable project and the exact HMI target:
 
-- [HMI structure mutations](./MCP_TOOL_TEST_PLAN_HMI_STRUCTURE.md)
-- [HMI navigation button](./MCP_TOOL_TEST_PLAN_HMI_NAVIGATION.md)
+- [HMI structure mutations](./plans/MCP_TOOL_TEST_PLAN_HMI_STRUCTURE.md)
+- [HMI navigation button](./plans/MCP_TOOL_TEST_PLAN_HMI_NAVIGATION.md)
 
 Use test-only screen/group/item names. Read the screen back after each change.
 Run `hmi_compile` with the HMI **device name** as `target_device`, as specified
@@ -149,17 +149,16 @@ connected to real process tags.
 ## 5. Cases that are not executable as shipped
 
 The following roadmap items have no implementation to test; do not invent
-tool names or approximate their behavior:
+tool names or approximate their behavior. Their API rationale and deferred
+acceptance cases are in these plans:
 
-- `read_project_texts`
-- `get_plc_textlists`
-- `instantiate_library_type`
-- `hmi_create_template`
+- [`read_project_texts`](./plans/MCP_TOOL_TEST_PLAN_READ_PROJECT_TEXTS.md)
+- [`get_plc_textlists`](./plans/MCP_TOOL_TEST_PLAN_PLC_SLICE_READS.md)
+- [`instantiate_library_type`](./plans/MCP_TOOL_TEST_PLAN_LIBRARY_TYPE_INSTANCES.md)
+- [`hmi_create_template`](./plans/MCP_TOOL_TEST_PLAN_HMI_NAVIGATION.md)
 
-Their rationale and acceptance cases are documented in the relevant test
-plans. Controlled API/read-back fault injection, if desired, belongs in an
-isolated test harness and must not be induced by damaging a live engineering
-project.
+Controlled API/read-back fault injection, if desired, belongs in an isolated
+test harness and must not be induced by damaging a live engineering project.
 
 ## 6. Copyable instruction for the MCP-connected agent
 
@@ -204,7 +203,7 @@ Execution:
    environment; expect v2.9.0 and 110 registered tools.
 2. Call tia_get_status and report the active project/connection check without
    changing it.
-3. Read the relevant docs/MCP_TOOL_TEST_PLAN_*.md plans. Execute fixture-ready
+3. Read the relevant docs/plans/MCP_TOOL_TEST_PLAN_*.md plans. Execute fixture-ready
    read-only cases first, then authorized PLC/project mutations, then
    authorized HMI cases. Follow each plan's exact inputs and expected results.
 4. For every case, report PASS, FAIL, BLOCKED, or NOT RUN; tool name; concise
@@ -223,31 +222,34 @@ Do not commit project-specific test logs or exports.
 
 ## 7. Run status (v2.9.0 live test, 2026-11-16)
 
-Run on a disposable copy of the engineering project. No project-specific logs, exports, or credentials are committed.
+Results below summarize a live test run. Some mutations ran on the working
+project with approval; this deviated from the safety procedure and is detailed
+below. No project-specific logs, exports, or credentials are committed.
 
 | Pass | Result | Notes |
 |---|---|---|
-| A: Read-only discovery | PASS | 31 cases. Several planned success paths were not run (see section 8). |
-| B: PLC and project mutations | PASS with N/A | B11 and B14 not applicable by design (TIA V21 rejects duplicate names on creation). B12 PLC ambiguity blocked: needs a two-PLC project. Wording in `MCP_TOOL_TEST_PLAN_PLC_MUTATIONS.md` reviewed (commits `b0ecef4`, `de868e0`). |
-| C: HMI structure and navigation | PASS | C1, C3, C4, C5 (rename), C6 creation and collision PASS on the updated server. Runtime navigation not run. |
-| D: Persistence and cleanup | PASS | Close and reopen checks passed. Runtime navigation not run. |
-| Project creation (`tia_create_project`) | PASS | C2 to C6 all run. The first two attempts failed with partial results, and the third succeeded. |
+| A: Read-only discovery | PARTIAL | 31 cases recorded. Several planned success paths and paged listings were not run (see section 8). |
+| B: PLC and project mutations | PARTIAL | Duplicate-create probes were rejected by TIA in this fixture; this does not establish that duplicate objects cannot exist in imported or older projects. PLC ambiguity is blocked pending a two-PLC project; group/path sub-checks remain unverified. |
+| C: HMI structure and navigation | PARTIAL | Selected creation, rename, and collision checks passed. Runtime navigation was not run. |
+| D: Persistence and cleanup | PASS WITH DEVIATION | Save/close/reopen checks passed with operator approval; the agent also closed/reopened projects and attached to new TIA processes contrary to this runbook's connection rules. |
+| Project creation (`tia_create_project`) | PASS AFTER RETRY | C2 to C6 were run. The first two attempts returned partial results; the third succeeded. |
 
-**Passed: 4 of 5 passes.** Pass B passes with documented N/A cases.
+No aggregate pass count is assigned: the four execution passes include blocked
+or unrun planned checks, while project creation is a separate operation rather
+than a fifth pass.
 
-**Build and checks (section 2):** Release build succeeded with 0 errors and 4 existing nullable warnings in `TiaManager.Hmi.cs`. The offline schema check passed for 111 tools, run with a per-process execution-policy bypass.
+**Build and checks (section 2):** Release build succeeded with 0 errors and 4 existing nullable warnings in `TiaManager.Hmi.cs`. The offline schema check passed for 111 exported schema files, run with a per-process execution-policy bypass. This does not establish the live `tools/list` count, which remains a separate check in section 2.
 
 **Deviations**
 - Pass B and Pass C mutations ran on the working project, with approval. Later mutations ran on a copy.
 - The MCP agent closed and reopened projects and attached to new TIA processes, which the runbook forbids for the agent. Closing and reopening was done with operator approval.
 - A `hmi_create_navigation_button` caption defect (styled caption rejected by TIA) was fixed in commit `9a1582e`. Commit message not corrected.
 - An HMI tag-table test placeholder was bound to an empty PLC tag, which caused one compile error. Removed by the operator.
-- Commit `de868e0` says "Committed by" where it should say "Generated by".
 
 **Open items**
 1. Openness whitelist: the Windows administrator must confirm the current `TiaOpennessMcp.exe` hash is trusted.
 2. Runtime navigation (C6, Pass D): not run. Needs a safe test runtime.
-3. Final reviewer approval of Pass B wording (optional, last review was approve with changes, all changes applied).
+3. Second review of the revised Pass B wording.
 
 ## 8. Sub-checks not verified
 

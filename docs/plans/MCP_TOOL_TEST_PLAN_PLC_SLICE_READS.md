@@ -38,7 +38,8 @@ raw API-reported attribute without interpretation.
 
 Run on a disposable V21 project after recording connected TIA instance,
 project path, PLC, block, and project dirty state. This implementation was
-compile-checked only; no live TIA operation was run.
+compile-checked only during implementation; subsequent selected checks are
+recorded in the [runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md).
 
 ### `tia_get_db_member_attributes`
 

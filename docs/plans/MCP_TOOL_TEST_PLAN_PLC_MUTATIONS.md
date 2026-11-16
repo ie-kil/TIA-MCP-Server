@@ -10,7 +10,9 @@ This plan covers four bounded operations implemented in
 3. `create_user_constant`
 4. `update_user_constant` (value only)
 
-No live TIA Portal or PLC tests were run. The bundled
+The implementation task did not run live TIA Portal or PLC tests. A later
+partial live-test run is recorded in the [runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md).
+The bundled
 `src/lib/Siemens.Engineering.Step7.dll` metadata exposes the relevant V21
 collection `Create` overloads: tag tables and user groups take a name;
 user constants take name, datatype, and value. `PlcUserConstant.Value` has a
@@ -90,7 +92,7 @@ the project was saved/reopened. Do not use a production project.
 | Invalid path | Absolute, trailing slash, repeated slash, or edge whitespace | `invalid_input`; no change in table/group counts. |
 | Missing target | Unknown PLC name or missing group segment | `not_found`; no change. |
 | Ambiguous target | Omitted PLC when multiple PLCs exist; or duplicate exact matching child groups in one path segment | `ambiguous`; no first-match behavior and no change. **Revised:** blocked: needs a two-PLC project (note N1). The project used for testing has one PLC. The duplicate-name sub-check for tag-table groups under one parent is still to be run, not skipped (note N3). |
-| Collision | Existing table or group name in selected group, including case-only difference | `collision`; existing object remains unchanged; no new table. A same-named object in a different group does not collide. |
+| Collision | Existing table or group name in selected group, including case-only difference | `collision`; existing object remains unchanged; no new table. In the later live fixture, TIA rejected creation of a same-named table in a different group with `api_failure` and `Partial=true`; this observed behavior does not establish that duplicate tables cannot exist in imported or older projects. |
 | API/read-back failure | In a disposable project, provoke a V21 engineering/COM exception after prechecks or use an API test double to simulate missing/duplicate read-back | `api_failure` or `verification_failed`; `Partial=true` because the call began; warning directs read-back. Inspect the group before retrying. Do not interpret this as rollback. |
 | Result shape | Exercise one success and one precondition failure through the registered tool handler | All PascalCase fields serialize; success includes warnings; precondition failure has `Partial=false`; no fabricated ID/revision. |
 | Persisted read-back | Successful root and nested creations | Save via the existing project-save flow, close/reopen, then locate each exact group/table. Verify the operation did not silently overwrite an existing table. |
@@ -117,7 +119,7 @@ the project was saved/reopened. Do not use a production project.
 | Valid numeric | Create signed/unsigned integer and finite `Real`/`LReal` constants with valid decimal values | Canonical type casing and invariant-culture numeric value returned; confirm the created properties from the collection, then save/close/reopen. |
 | Invalid name/value/type | Bad constant name; empty value; malformed bool/numeric; integer outside range; NaN/Infinity; unsupported type (including string, temporal, or structured) | `invalid_input`; no create call and no added constant. |
 | Missing target | Unknown PLC, group, or table | `not_found`; no change. |
-| Ambiguous target | Omitted PLC with multiple matches, ambiguous group segment, or duplicate exact table in its group | `ambiguous`; no change. **Revised:** not applicable by design for the duplicate-table precondition. TIA V21 rejects a same-name table in another group of the same PLC on creation (note N2). The ambiguous-group-segment sub-check is not verified for tag-table groups. It is expected to be rejected as `collision`, based on the block-group result (note N3). |
+| Ambiguous target | Omitted PLC with multiple matches, ambiguous group segment, or duplicate exact table in its group | `ambiguous`; no change. The duplicate-table precondition was not constructible through the V21 API in the tested fixture (note N2); this is not a general not-applicable result. The ambiguous-group-segment sub-check is unverified for tag-table groups (note N3). |
 | Collision | Exact constant name already exists in selected table, including case-only difference | `collision`; no overwrite and no other table is modified. |
 | API/read-back failure | Trigger a V21 engineering/COM failure or simulate a mismatching exact-name read-back after prechecks | `api_failure` or `verification_failed`, `Partial=true`; read back the same constant name/table before retry. The client validator is deliberately a strict subset and cannot guarantee TIA acceptance. |
 | Result shape | Valid create and each precondition/API/read-back failure | Response contains normalized `DataType`/`Value` when available; `Partial=false` before API call and true for uncertain post-call outcomes; no revision/ID claim. |
@@ -130,7 +132,7 @@ the project was saved/reopened. Do not use a production project.
 | Valid update | Existing exact constant; valid new literal for its stored datatype | `updated`; returned value is normalized and equals read-back from the same constant; save/close/reopen and read again. |
 | Invalid value | Wrong bool/numeric syntax, out-of-range integer, non-finite float, or unsupported stored datatype | `invalid_input`; setter is not invoked; prior value remains unchanged. |
 | Missing target | Unknown PLC/group/table or no exact constant in selected table | `not_found`; no change. |
-| Ambiguous target | Omitted PLC when multiple PLCs exist, ambiguous group path, duplicate exact table, or duplicate exact constant names within a table | `ambiguous`; no setter call. **Revised:** the duplicate-table precondition is not applicable by design: TIA V21 rejects a same-name table in another group of the same PLC on creation (note N2). The duplicate-constant precondition is not applicable by design, based on the cross-table rejection on creation (note N2). This is not a claim about updates. Duplicate names within one table are covered by the collision case. The ambiguous-group-path sub-check is not verified (note N3). The PLC-ambiguity sub-check is blocked: needs a two-PLC project (note N1). |
+| Ambiguous target | Omitted PLC when multiple PLCs exist, ambiguous group path, duplicate exact table, or duplicate exact constant names within a table | `ambiguous`; no setter call. Duplicate-table and duplicate-constant preconditions were not constructible through the tested V21 API fixture (note N2); they are not generally declared impossible. Duplicate names within one table are covered by the collision case. The ambiguous-group-path sub-check is unverified (note N3). The PLC-ambiguity sub-check is blocked pending a two-PLC project (note N1). |
 | Collision/dependency | Not applicable: this operation does not create or rename an object and does not change datatype. Verify that same-name constants in other tables are untouched. |
 | API/read-back failure | On a disposable project force a V21 engineering/COM error or simulate a mismatch after setter invocation starts | `api_failure` or `verification_failed`, `Partial=true`; read back immediately because the setter may have applied before the failure. |
 | Result shape | Successful update and each failure category | `Operation`, `Status`, target, and `Value` are explicit; `Partial=false` for validation/lookup failures and true for uncertain setter failures; no expected-revision field is accepted or implied. |
@@ -154,8 +156,8 @@ the project was saved/reopened. Do not use a production project.
 - Project-text writes and project creation: deferred.
 - Deletes, imports/replacements, transfers, and any multi-object workflow:
   explicitly out of scope.
-- Stable IDs, revisions, optimistic concurrency, transactions, rollback, and
-  live TIA tests are not claimed or implemented.
+- Stable IDs, revisions, optimistic concurrency, transactions, and rollback
+  are not claimed or implemented; untested live cases remain unverified.
 
 ## Revision notes (uniqueness rule, observed on 261027_INT_UtviklingIECore_Copy, 2026-11-16)
 
@@ -168,5 +170,5 @@ the project was saved/reopened. Do not use a production project.
   - Same-name tag-table groups under different parents: not tested. The block-group result does not establish this for tag-table groups.
   - Same-name child groups under one parent: rejected as `collision` for block groups in B15. Not tested for tag-table groups.
   - Sub-checks not verified: the ambiguous-group-segment check for tag tables and constants, and the ambiguous-group-path check for constant updates. Same-name groups under one parent are expected to be rejected as `collision`, based on the block-group result. This is not confirmed for tag-table or constant groups. Retry these if tag-table or constant groups allow same-name groups under different parents.
-- **Result:** B11 and B14 are not applicable by design, on this V21 project. The PLC-ambiguity case is blocked: needs a two-PLC project. No exact-path resolution test for tag tables or constants was run. The B15 read-back covers block groups only.
-- **Status:** these rows are not a pass. Get a reviewer's second sign-off on the revised wording before committing.
+- **Result:** duplicate table/constant creation was rejected by the API in this fixture; this does not prove that such duplicates cannot occur in other project states. PLC ambiguity is blocked pending a two-PLC project. No exact-path resolution test for tag tables or constants was run. The B15 read-back covers block groups only. See the [runbook](../MCP_TOOL_LIVE_TEST_RUNBOOK.md) for the recorded live-test status.
+- **Status:** blocked and unverified rows are not passes. Obtain a second review before treating these cases as resolved.
