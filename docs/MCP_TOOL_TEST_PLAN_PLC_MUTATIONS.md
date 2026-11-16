@@ -89,7 +89,7 @@ the project was saved/reopened. Do not use a production project.
 | Invalid name | Empty/whitespace name, edge whitespace, slash, backslash, or control character | `invalid_input`; no API create call; no change in table count. |
 | Invalid path | Absolute, trailing slash, repeated slash, or edge whitespace | `invalid_input`; no change in table/group counts. |
 | Missing target | Unknown PLC name or missing group segment | `not_found`; no change. |
-| Ambiguous target | Omitted PLC when multiple PLCs exist; or duplicate exact matching child groups in one path segment | `ambiguous`; no first-match behavior and no change. |
+| Ambiguous target | Omitted PLC when multiple PLCs exist; or duplicate exact matching child groups in one path segment | `ambiguous`; no first-match behavior and no change. **Revised:** the PLC case is not applicable when the project has one PLC (see note N1). Duplicate child groups under one parent are rejected as `collision` (B13), so they cannot be built (see note N2). |
 | Collision | Existing table or group name in selected group, including case-only difference | `collision`; existing object remains unchanged; no new table. A same-named object in a different group does not collide. |
 | API/read-back failure | In a disposable project, provoke a V21 engineering/COM exception after prechecks or use an API test double to simulate missing/duplicate read-back | `api_failure` or `verification_failed`; `Partial=true` because the call began; warning directs read-back. Inspect the group before retrying. Do not interpret this as rollback. |
 | Result shape | Exercise one success and one precondition failure through the registered tool handler | All PascalCase fields serialize; success includes warnings; precondition failure has `Partial=false`; no fabricated ID/revision. |
@@ -117,7 +117,7 @@ the project was saved/reopened. Do not use a production project.
 | Valid numeric | Create signed/unsigned integer and finite `Real`/`LReal` constants with valid decimal values | Canonical type casing and invariant-culture numeric value returned; confirm the created properties from the collection, then save/close/reopen. |
 | Invalid name/value/type | Bad constant name; empty value; malformed bool/numeric; integer outside range; NaN/Infinity; unsupported type (including string, temporal, or structured) | `invalid_input`; no create call and no added constant. |
 | Missing target | Unknown PLC, group, or table | `not_found`; no change. |
-| Ambiguous target | Omitted PLC with multiple matches, ambiguous group segment, or duplicate exact table in its group | `ambiguous`; no change. |
+| Ambiguous target | Omitted PLC with multiple matches, ambiguous group segment, or duplicate exact table in its group | `ambiguous`; no change. **Revised:** a duplicate table name is not possible in one PLC, even in another group (note N2). Not applicable by design. |
 | Collision | Exact constant name already exists in selected table, including case-only difference | `collision`; no overwrite and no other table is modified. |
 | API/read-back failure | Trigger a V21 engineering/COM failure or simulate a mismatching exact-name read-back after prechecks | `api_failure` or `verification_failed`, `Partial=true`; read back the same constant name/table before retry. The client validator is deliberately a strict subset and cannot guarantee TIA acceptance. |
 | Result shape | Valid create and each precondition/API/read-back failure | Response contains normalized `DataType`/`Value` when available; `Partial=false` before API call and true for uncertain post-call outcomes; no revision/ID claim. |
@@ -130,7 +130,7 @@ the project was saved/reopened. Do not use a production project.
 | Valid update | Existing exact constant; valid new literal for its stored datatype | `updated`; returned value is normalized and equals read-back from the same constant; save/close/reopen and read again. |
 | Invalid value | Wrong bool/numeric syntax, out-of-range integer, non-finite float, or unsupported stored datatype | `invalid_input`; setter is not invoked; prior value remains unchanged. |
 | Missing target | Unknown PLC/group/table or no exact constant in selected table | `not_found`; no change. |
-| Ambiguous target | Omitted PLC when multiple PLCs exist, ambiguous group path, duplicate exact table, or duplicate exact constant names within a table | `ambiguous`; no setter call. |
+| Ambiguous target | Omitted PLC when multiple PLCs exist, ambiguous group path, duplicate exact table, or duplicate exact constant names within a table | `ambiguous`; no setter call. **Revised:** duplicate table and duplicate constant names are not possible in one PLC (note N2). The PLC case is not applicable with one PLC (note N1). Not applicable by design. |
 | Collision/dependency | Not applicable: this operation does not create or rename an object and does not change datatype. Verify that same-name constants in other tables are untouched. |
 | API/read-back failure | On a disposable project force a V21 engineering/COM error or simulate a mismatch after setter invocation starts | `api_failure` or `verification_failed`, `Partial=true`; read back immediately because the setter may have applied before the failure. |
 | Result shape | Successful update and each failure category | `Operation`, `Status`, target, and `Value` are explicit; `Partial=false` for validation/lookup failures and true for uncertain setter failures; no expected-revision field is accepted or implied. |
@@ -156,3 +156,14 @@ the project was saved/reopened. Do not use a production project.
   explicitly out of scope.
 - Stable IDs, revisions, optimistic concurrency, transactions, rollback, and
   live TIA tests are not claimed or implemented.
+
+## Revision notes (uniqueness rule, observed on 261027_INT_UtviklingIECore_Copy, 2026-11-16)
+
+- **N1 (single PLC):** the test project has one PLC (`MainU1A1PLC`). Any case that needs two PLCs with the same name cannot be built there. Mark it not applicable for that project, and run it on a project with two PLCs if one becomes available.
+- **N2 (TIA uniqueness):** TIA Portal rejects duplicate names within the scope the plan calls ambiguous:
+  - Tag tables: a second table with the same name in another group was rejected with "An attempt was made to create an object…" (`api_failure`, partial). No second table was created. The first table remained.
+  - User constants: a second constant with the same name in a different table of the same PLC was rejected with "An attempt was made to create an object that already exists." Read-back showed no second constant.
+  - Tag-table groups and same-name child groups under one parent: rejected as `collision` by the tool (B13).
+  - Block groups allow the same name under different parents (B15). This is the only verified case of a duplicate name across parents.
+- **Result:** the ambiguity cases for tag tables and constants are not applicable by design, because TIA does not allow the duplicates they need. Exact-path resolution is still covered by the B15 read-back and by the collision cases.
+- **Status:** these rows are not a pass. Record them as "not applicable by design" with this note, and get a reviewer's sign-off on the wording.
